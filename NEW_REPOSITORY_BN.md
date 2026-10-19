@@ -1,6 +1,6 @@
 # নতুন BsonLite repository
 
-আলাদা private GitHub repository তৈরি হয়েছে: [MohammadAtikurRahman/BsonLite](https://github.com/MohammadAtikurRahman/BsonLite)। Default branch `main`। এটি Windows final release নয়; আসল Windows engine build ও integration tests সফল হওয়া বাকি। প্রথম source upload ও build প্রস্তুত করা হচ্ছে।
+আলাদা private GitHub repository তৈরি হয়েছে: [MohammadAtikurRahman/BsonLite](https://github.com/MohammadAtikurRahman/BsonLite)। Default branch `main`। Source ও workflows আপলোড হয়েছে এবং Windows build চলছে। SDK/DPAPI/ACL/Unicode helper checks পাস করেছে। আসল engine ও integration tests সফল হওয়ার পর ব্যবহারযোগ্য encrypted SDK পাওয়া যাবে।
 
 Repository-তে source প্রকাশ হয়ে গেলে নিচের initial-publishing helper আবার চালানোর দরকার নেই। পরবর্তী পরিবর্তন স্বাভাবিক Git commit/push দিয়ে যাবে।
 

@@ -60,6 +60,17 @@ Export('module_sconscripts')""" % str(sodium_library.resolve()))
             '    std::ifstream pemFile(fileName.toString(), std::ios::binary);',
             '    const auto wideName = toWideString(fileName.toString().c_str());\n'
             '    std::ifstream pemFile(wideName.c_str(), std::ios::binary);')
+    # Engine-created minidumps can contain plaintext values or key material.
+    # Keep OS-managed dumps outside the guarantee, but remove our own writer.
+    dumps = "src/mongo/util/exception_filter_win32.cpp"
+    text = (mongo / dumps).read_text()
+    start = text.index("void doMinidumpWithException(struct _EXCEPTION_POINTERS* exceptionInfo) {")
+    end = text.index("\nLONG WINAPI exceptionFilter", start)
+    replace(mongo, dumps, text[start:end], """void doMinidumpWithException(struct _EXCEPTION_POINTERS* exceptionInfo) {
+    (void)exceptionInfo;
+    log() << "BsonLite engine memory dumps are disabled.";
+}
+""")
     hooks = "src/mongo/db/storage/encryption_hooks.cpp"
     replace(mongo, hooks, '#include "mongo/platform/basic.h"', '#include "mongo/platform/basic.h"\n' + include)
     replace(mongo, hooks, '    return false;\n}\n\nbool EncryptionHooks::restartRequired()', '    return bsonlite_key_ready() != 0;\n}\n\nbool EncryptionHooks::restartRequired()')

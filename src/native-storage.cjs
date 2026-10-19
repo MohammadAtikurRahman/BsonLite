@@ -52,8 +52,8 @@ async function resolveNative(binary, options) {
       throw new BsonLiteError("BSONLITE_NATIVE_ENGINE_INVALID", "A prototype encryption component failed its checksum.");
     }
     argumentsForProbe = [];
-  } else if (manifest.mode !== "builtin" || manifest.temporaryFiles !== true) {
-    throw new BsonLiteError("BSONLITE_NATIVE_BUILD_REQUIRED", "Full native encryption requires the rebuilt engine with encrypted temporary files. A Linux extension prototype cannot be substituted.");
+  } else if (manifest.mode !== "builtin" || manifest.temporaryFiles !== true || manifest.engineManagedDumps !== false) {
+    throw new BsonLiteError("BSONLITE_NATIVE_BUILD_REQUIRED", "Full native encryption requires the rebuilt engine with encrypted temporary files and disabled engine memory dumps. A Linux extension prototype cannot be substituted.");
   }
   let result;
   try { result=JSON.parse((await exec(probe,argumentsForProbe,{windowsHide:true,timeout:15000,maxBuffer:65536})).stdout.trim()); }
@@ -92,6 +92,7 @@ async function verifyNative(client, directory, native, metadata, config) {
   return Object.freeze({policy:full?"native":"native-prototype",required:true,verified:full,
     method:"wiredtiger-native",algorithm:CIPHER,coverage:native.coverage,
     wiredTigerBlocksObserved:true,temporaryFiles:full,processLogs:"aes-256-gcm",
+    ...(full?{engineManagedDumps:false}:{}),
     ...(full?{}:{reason:"prototype-does-not-protect-mongodb-temporary-files"})});
 }
 function createEncryptedLog(file, auth) {

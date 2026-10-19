@@ -4,7 +4,7 @@ Status: implementation + verified Linux WiredTiger prototype; full Windows build
 
 ## GitHub
 
-The new private repository is `MohammadAtikurRahman/BsonLite`. It was created through the authorized GitHub browser session because the connector has no repository-creation action. Source upload and the first actual Windows run are being prepared. An earlier branch-write failure concerned Portable-MongoDB. See `NEW_REPOSITORY_BN.md` for repository/build details.
+The private repository is `MohammadAtikurRahman/BsonLite`, and the source/workflows have been published on `main`. GitHub Actions is executing the native Windows build. Windows SDK, DPAPI/ACL/Unicode helper and source-preview packaging checks have passed. The full engine and embedded artifact still require their successful native run. See `NEW_REPOSITORY_BN.md` for repository/build details.
 
 Place this SDK project at the new repository root. A push to `main` starts `.github/workflows/native-windows.yml`; **Actions → Build native encrypted Windows SDK → Run workflow** also permits a manual run. It only uploads **BsonLite-native-Windows-x64-<commit>** after all tests pass. The artifact includes checksums and the source commit/run reference. If keeping the SDK in a subfolder of an existing repository, move the workflow to the repository-level `.github/workflows/` and adjust working-directory and artifact paths to that subfolder.
 
@@ -25,7 +25,9 @@ npm run test:native-integration
 
 The workflow records successful Windows validation before `npm run build`. Do not fabricate the validation flag. The static library is built from pinned libsodium source with the same compiler/CRT as the engine. Windows SChannel handles TLS; no old OpenSSL DLL is added to the customer package. The build rejects unexpected VC/crypto DLL imports. Actual platform testing is still required.
 
-The patcher refuses a repeat/ambiguous patch and expects exact MongoDB 4.0.28 / WiredTiger 3.1.1 sources. Use a fresh extracted tree when modifying the patch. It registers encryption before recovery, adds a native self-test entry point, wires temporary-file protection, and forces the native cipher after user-specified table/index settings. The matching modified-engine source archive accompanies the CI artifact.
+The patcher refuses a repeat/ambiguous patch and expects exact MongoDB 4.0.28 / WiredTiger 3.1.1 sources. Use a fresh extracted tree when modifying the patch. It registers encryption before recovery, adds a native self-test entry point, wires temporary-file protection, forces the native cipher after user-specified table/index settings, and opens Windows SChannel PEM files through Unicode paths. The matching modified-engine source archive accompanies the CI artifact.
+
+SCons requires the Windows file target `mongod.exe` and its Python 2 `win32api` dependency. The pinned pywin32 wheel and private DLL copies are builder-only dependencies. The workflow caches compiled native outputs by native-source hash before running SDK integration tests; changing JavaScript alone can reuse that build. Every customer artifact still requires a fresh successful SDK/integration run.
 
 ## Linux proof of concept
 

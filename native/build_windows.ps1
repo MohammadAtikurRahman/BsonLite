@@ -82,12 +82,16 @@ $imports = & 'dumpbin.exe' '/DEPENDENTS' (Join-Path $output 'mongod.exe')
 if ($LASTEXITCODE -ne 0 -or ($imports -match '(?i)(MSVCP[0-9]+|VCRUNTIME[0-9]+|libsodium|libcrypto|libssl)\.dll')) {
     throw 'The engine has an unexpected external runtime dependency. Do not publish it.'
 }
+$importedFunctions = & 'dumpbin.exe' '/IMPORTS' (Join-Path $output 'mongod.exe')
+if ($LASTEXITCODE -ne 0 -or ($importedFunctions -match 'MiniDumpWriteDump')) {
+    throw 'The native engine still imports its plaintext memory-dump writer. Do not publish it.'
+}
 $manifest = [ordered]@{
     version=1; cipher='xchacha20-poly1305'; mode='builtin'; platform='win32'; arch='x64';
     engineVersion='4.0.28'; engineSha256=(Get-FileHash (Join-Path $output 'mongod.exe') -Algorithm SHA256).Hash.ToLowerInvariant();
     temporaryFiles=$true; libsodiumVersion=$lock.sodium.version; upstreamCommit=$lock.mongo.commit;
     patchSha256=(Get-Content (Join-Path $mongo '.bsonlite-native-patched') -Raw).Trim();
-    windowsIntegration='pending'; tlsProvider='Windows SChannel'; staticCRuntime=$true
+    windowsIntegration='pending'; tlsProvider='Windows SChannel'; staticCRuntime=$true; engineManagedDumps=$false
 }
 $manifest | ConvertTo-Json -Depth 5 | Set-Content (Join-Path $output 'native-engine.json') -Encoding utf8NoBOM
 Copy-Item (Join-Path $sodium 'LICENSE') (Join-Path $projectRoot 'licenses/libsodium-LICENSE.txt')

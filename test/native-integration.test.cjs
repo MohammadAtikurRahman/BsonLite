@@ -25,7 +25,7 @@ test("real MongoDB queries, indexes and BSON values work with encrypted WiredTig
   assert.equal(await db.collection("items").countDocuments({$text:{$search:"offline"}}),1);
   assert.equal((await db.collection("items").aggregate([{$group:{_id:null,total:{$sum:"$n"}}}]).toArray())[0].total,3);
   await assert.rejects(db.collection("items").insertOne({n:1}),e=>e.code===11000);
-  const info=db.info.security.storageEncryption;assert.equal(info.method,"wiredtiger-native");assert.equal(info.verified,!prototype);assert.equal(info.temporaryFiles,!prototype);
+  const info=db.info.security.storageEncryption;assert.equal(info.method,"wiredtiger-native");assert.equal(info.verified,!prototype);assert.equal(info.temporaryFiles,!prototype);if(!prototype)assert.equal(info.engineManagedDumps,false);
   assert.equal(JSON.stringify(db).includes("dataKey"),false);await db.close();db=null;
   const files=fs.readdirSync(path.join(directory,"data")).filter(n=>n.endsWith(".wt"));assert.ok(files.some(n=>findMarker(path.join(directory,"data",n),Buffer.from("BSLAE001"))));
   for(const name of files)assert.equal(findMarker(path.join(directory,"data",name),Buffer.from("NATIVE_SECRET_SENTINEL_842416")),false);

@@ -14,6 +14,6 @@ For final customer use, include `BsonLite.cjs` in the app's backend/main process
 
 Test an account without administrator privileges on fresh Windows Home and Pro installations. Verify that first launch has no compiler/crypto downloads, no EFS/BitLocker dependency, no unexpected DLL prerequisite, no plaintext database or process log, working restart and matching encrypted backup restore. CI's preinstalled software is not a substitute for a clean-PC check.
 
-The private `MohammadAtikurRahman/BsonLite` repository has been created through the authorized browser session. The connector has no repository-creation action, and an earlier write failure concerned Portable-MongoDB. Source upload and the first Windows run are being prepared. Pushing `main` starts the full workflow automatically; it publishes a downloadable Actions artifact only after every test succeeds. It does not publish a GitHub Release.
+Source and workflows are published in the private `MohammadAtikurRahman/BsonLite` repository. Windows SDK/security/Unicode helper and source-preview packaging checks have passed; native engine compilation is in progress. Pushing `main` starts the full workflow automatically; it publishes a downloadable Actions artifact only after every test succeeds. It does not publish a GitHub Release.
 
 Use a writable ACL-capable NTFS location for the database and private vault. Native encryption does not make a read-only application install directory writable or add filesystem permissions to FAT/exFAT. Windows x64 is the current native build target.

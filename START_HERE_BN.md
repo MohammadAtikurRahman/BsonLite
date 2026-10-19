@@ -6,7 +6,7 @@
 
 ## তোমার এখন যা করতে হবে
 
-আলাদা private GitHub repository তৈরি হয়েছে: [MohammadAtikurRahman/BsonLite](https://github.com/MohammadAtikurRahman/BsonLite)। Source upload ও প্রথম Windows build প্রস্তুত করা হচ্ছে। বিস্তারিত আছে [NEW_REPOSITORY_BN.md](NEW_REPOSITORY_BN.md)-এ।
+আলাদা private GitHub repository তৈরি হয়েছে: [MohammadAtikurRahman/BsonLite](https://github.com/MohammadAtikurRahman/BsonLite)। Source আপলোড হয়েছে এবং Windows engine build চলছে। বিস্তারিত আছে [NEW_REPOSITORY_BN.md](NEW_REPOSITORY_BN.md)-এ।
 
 Build workflow এই project-এ দেওয়া আছে। নতুন repo-র `main` branch-এ code push হলেই Windows build শুরু হবে। Manual run-ও করা যাবে **Actions → Build native encrypted Windows SDK → Run workflow** থেকে। Build ও সব tests সফল হলে **BsonLite-native-Windows-x64-…** artifact-এর `dist/BsonLite.cjs` হবে engine-সহ single file। Source preview-কে final file মনে করবে না।
 

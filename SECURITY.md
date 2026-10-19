@@ -1,4 +1,4 @@
-# Security model — 0.6.0-preview.1
+# Security model — 0.6.0-preview.2
 
 Development preview. No independent security audit or native Windows validation is claimed until the CI workflow actually succeeds.
 
@@ -20,6 +20,8 @@ The supervisor hands the engine a single 56-byte binary frame through stdin and 
 Normal application code receives a rotating readWrite account for its named database. Root credentials and the data key stay in the supervisor/native processes. The program author and same-account malware can still inspect process memory or use authorized APIs. Local admin compromise, pagefiles, hibernation, crash dumps, compromised runtimes and memory scraping are outside a file-encryption guarantee.
 
 Mutual TLS, loopback-only binding, SCRAM-SHA-256, disabled scripting/profiling/diagnostic collection, private filesystem permissions and token-owned locks remain in place. TLS leaf private keys are ACL-protected temporary files; they are not falsely labeled DPAPI-encrypted.
+
+The custom Windows engine removes MongoDB's own minidump writer, and the builder rejects a binary importing `MiniDumpWriteDump`. This prevents that engine feature from writing process memory beside the executable. Windows-managed dump policies, the Node.js process, pagefiles and hibernation remain outside this protection.
 
 ## Failure, migration and recovery
 

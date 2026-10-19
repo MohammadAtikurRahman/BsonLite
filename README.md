@@ -29,6 +29,18 @@ main().catch(error => {
 
 Other application files use `BsonLite.collection('users')` after startup. Data stays in `./Database`; engine, credential/data-key vault and TLS sessions use private OS application data. A final CJS contains the driver, certificate code, static crypto engine and notices. Node.js 20+ or a compatible packaged runtime is required. It is an SDK, not a standalone customer EXE.
 
+## Compatibility
+
+| Area | Supported profile |
+| --- | --- |
+| Customer runtime | Windows x64 with Node.js 20+ or an app that packages a compatible runtime |
+| Query API | MongoDB 4.0.28 CRUD, BSON values, indexes and aggregation operators supported by that server version |
+| Deployment | One standalone, authenticated MongoDB process bound to `127.0.0.1` |
+| Server-side JavaScript | Disabled; `$where` and JavaScript-based `mapReduce` are unavailable |
+| Multi-document transactions and change streams | Require replica-set configuration, which this standalone profile does not provide |
+| Filesystem | A private writable location with Windows access controls, normally NTFS |
+| Data recovery on another account/PC | Restore a matching encrypted backup with its password; the data key is protected separately in the account vault |
+
 ## Build
 
 This project has its own private GitHub repository, [MohammadAtikurRahman/BsonLite](https://github.com/MohammadAtikurRahman/BsonLite), on `main`. A successful Windows workflow is still required before a customer engine is available. See [NEW_REPOSITORY_BN.md](NEW_REPOSITORY_BN.md) for repository and build details.
