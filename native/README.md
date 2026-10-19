@@ -1,6 +1,6 @@
 # Native encrypted engine build
 
-Status: the pinned Windows engine has compiled, linked, passed its in-engine cipher self-test (exit status 0), import guards and source packaging. Full Windows runtime/integration remains pending until the actual workflow succeeds. This code is a development preview, not an audited encrypted database product.
+The pinned Windows engine has compiled, linked, passed its in-engine cipher self-test (exit status 0), import guards and source packaging. BsonLite 0.6.0-rc.1 is a release candidate. Customer artifacts are uploaded only after the actual full Windows runtime and final-bundle workflow succeeds; use the matching artifact's validation.json as evidence. No independent security audit is claimed.
 
 ## GitHub
 
@@ -53,7 +53,7 @@ The supplied binary must run on the host; Ubuntu 18.04 MongoDB 4.0.28 needs its 
 
 See `SECURITY.md`. Use libsodium's XChaCha20-Poly1305 implementation, never a new cipher invented for this project. The AEAD block overhead is 48 bytes. Domain + public key-id binding is implemented; authenticated file-position binding and anti-rollback are not. This needs independent storage/cryptography review before production.
 
-A raw 32-byte data key and 16-byte public id enter the engine through a single 56-byte stdin frame (`BSLKEY01` + id + key). Stdin closes after the frame; truncation/extra data is refused. The key slot uses sodium secure allocation/memory locking. No raw key argument/environment/file is used by the design. JavaScript memory and OS paging/crash dumps remain outside this guarantee.
+A raw 32-byte data key and 16-byte public id enter the engine through a single 56-byte stdin frame (`BSLKEY01` + id + key). Stdin closes after the frame; truncation/extra data is refused, and the input frame is zeroed after loading. The key slot uses sodium secure allocation/memory locking and remains for the process lifetime. The pinned engine's fast exit bypasses `atexit` callbacks; explicit key-slot erasure on shutdown is not claimed. No raw key argument/environment/file is used by the design. JavaScript memory and OS paging/crash dumps remain outside this guarantee.
 
 ## Primary references
 

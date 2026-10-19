@@ -1,24 +1,29 @@
-# BsonLite 0.6 native encryption preview — শুরু করার আগে
+# BsonLite 0.6.0-rc.1 — ব্যবহার শুরু
 
-**এটি নতুন encryption version-এর code ও build প্রস্তুতি। Windows-এর জন্য তৈরি ও পরীক্ষিত encrypted engine এখনো এই source preview-তে নেই। বর্তমান `dist/BsonLite.cjs` customer-কে দিয়ে সরাসরি database চালানো যাবে না।**
+এই নির্দেশনা সফল Windows build-এর **engine-সহ `BsonLite.cjs`**-এর জন্য। Git checkout বা `build:preview` bundle-এ engine থাকে না। Downloadable native artifact শুধু সব Windows checks পাস করার পর তৈরি হয়; matching commit/run থাকে `validation.json`-এ।
 
-ভেতরে আছে: WiredTiger encryption module, প্রতিটি database-এর আলাদা random key, protected vault, encrypted logs, native backup/restore, পুরোনো data migration এবং Windows build workflow। MongoDB version 4.0.28-ই রাখা হয়েছে।
+## প্রথমে চালাও
 
-## তোমার এখন যা করতে হবে
+Windows x64 ও Node.js 20+ প্রয়োজন; CI-তে Node.js 24 ব্যবহার করা হয়। নিজের account থেকে লেখা যায় এমন NTFS folder ব্যবহার করো। EFS, BitLocker, MongoDB installation, Python, compiler বা আলাদা npm package লাগবে না। CJS নিজে standalone EXE নয়; desktop app বানালে app-এর সঙ্গে compatible Node/runtime দিতে হবে।
 
-আলাদা private GitHub repository তৈরি হয়েছে: [MohammadAtikurRahman/BsonLite](https://github.com/MohammadAtikurRahman/BsonLite)। Source আপলোড হয়েছে এবং Windows engine build চলছে। বিস্তারিত আছে [NEW_REPOSITORY_BN.md](NEW_REPOSITORY_BN.md)-এ।
+যে folder-এ `BsonLite.cjs` ও দেওয়া `index.js` আছে, সেখানে terminal খুলে চালাও:
 
-Build workflow এই project-এ দেওয়া আছে। নতুন repo-র `main` branch-এ code push হলেই Windows build শুরু হবে। Manual run-ও করা যাবে **Actions → Build native encrypted Windows SDK → Run workflow** থেকে। Build ও সব tests সফল হলে **BsonLite-native-Windows-x64-…** artifact-এর `dist/BsonLite.cjs` হবে engine-সহ single file। Source preview-কে final file মনে করবে না।
+```powershell
+node index.js
+```
 
-এই build কাজ developer/CI-এর। তোমার customer-কে compiler, Python, libsodium বা encryption command চালাতে হবে না। Customer-এর desktop app-এ Node/runtime packaging তোমাকে অন্তর্ভুক্ত করতে হবে; শুধু CJS নিজে standalone EXE নয়।
+দুটি status line দেখাবে: database connected এবং app server running। Browser-এ `http://127.0.0.1:3000/health` খুললে connection status ও database port দেখা যাবে। Record নিজে থেকে insert বা print হবে না। বন্ধ করতে `Ctrl+C`।
 
-## Final build পাওয়ার পরে ব্যবহার
+## নিজের project-এ
+
+Project-এ `BsonLite.cjs` রেখে entry file থেকে:
 
 ```js
 const BsonLite = require('./BsonLite.cjs');
+
 async function main() {
   await BsonLite.connect();
-  // এখানে তোমার server/app চালু করো।
+  // এখানে তোমার server বা desktop app চালু করো।
 }
 main().catch(error => {
   console.error(error.code, error.message);
@@ -26,18 +31,27 @@ main().catch(error => {
 });
 ```
 
-অন্য file থেকে:
+অন্য file থেকে, connection চালু হওয়ার পরে:
 
 ```js
 const BsonLite = require('./BsonLite.cjs');
 module.exports.addUser = user => BsonLite.collection('users').insertOne(user);
 ```
 
-শুরুতে port/TLS/credentials/key নিজে তৈরি হবে। Record নিজে থেকে insert বা print হবে না। Data থাকবে project-এর `Database` folder-এ। Engine/vault থাকবে private OS application data-তে।
+দেওয়া `users.js`-এ input validation-সহ example আছে। ESM project হলে `import BsonLite from './BsonLite.cjs'` ব্যবহার করবে।
 
-## আগের database আছে?
+Database name না দিলেও চলবে। চাইলে `await BsonLite.connect('myapp')`। Port, TLS certificates, credentials ও encryption key SDK তৈরি করে। `BsonLite.status().port` দিয়ে database port পাওয়া যায়। Advanced BSON types আছে `BsonLite.BSON`-এ; যেমন `BsonLite.BSON.Decimal128.fromString('12.50')`।
 
-**পুরোনো `Database` delete বা metadata বদলাবে না।** Validated encrypted engine পাওয়ার পর:
+## File কোথায় থাকবে
+
+- `Database/`: project-এর data; default-এ native encryption চালু।
+- Private Windows application data: extracted engine, DPAPI-protected credential/data-key vault এবং temporary TLS files। এগুলো project folder-এ তৈরি হয় না।
+
+Windows-এ executable চালাতে engine-কে একটি file হিসেবে extract করতেই হয়। MongoDB 4.0.28 ভেতরে ব্যবহৃত হচ্ছে; runtime files গোপন রাখার security দাবি নেই। Database folder অন্য PC/account-এ copy করলেই protected key সঙ্গে যায় না। Portable recovery-এর জন্য encrypted backup রাখো।
+
+## আগে থেকে Database থাকলে
+
+**পুরোনো `Database`, metadata বা matching vault delete করবে না।** পুরোনো non-native data চালু করতে গেলে `BSONLITE_NATIVE_MIGRATION_REQUIRED` আসতে পারে। Supported 0.4/0.5 store বন্ধ রেখে নতুন directory-তে migrate করো:
 
 ```js
 await BsonLite.migrate({
@@ -46,26 +60,40 @@ await BsonLite.migrate({
 });
 ```
 
-দুই database-ই বন্ধ রেখে migration শুরু করবে। সফল হওয়ার পর তোমার app-এ `connect({directory:'./DatabaseEncrypted'})` ব্যবহার করবে। Migration-এর সময় মূল data রেখে দেওয়া হয়। অর্থাৎ পুরোনো copy-তে আগের encryption অবস্থাই থাকবে; migration তাকে নিরাপদে মুছে দেয় না।
+সফল হলে app-এ `await BsonLite.connect({ directory: './DatabaseEncrypted' })` ব্যবহার করো। Migration মূল data রেখে দেয়; মূল copy আগের encryption অবস্থাতেই থাকে। আরও পুরোনো legacy format হলে আগে encrypted `backup`/`restore` দিয়ে supported non-native copy তৈরি করতে হবে; metadata হাতে বদলে নতুন format লিখবে না।
 
-## Status বুঝবে কীভাবে?
+## Backup
 
-- Final rebuilt engine: `Native encryption verified` — startup self-test, requested engine configuration ও encrypted block check পাস করেছে।
-- Linux prototype: temporary files সুরক্ষিত নয় বলে পরিষ্কার warning থাকবে এবং `verified:false` থাকবে।
-- `BSONLITE_NATIVE_BUILD_REQUIRED` / `BSONLITE_ENGINE_NOT_EMBEDDED`: final encrypted engine তৈরি/অন্তর্ভুক্ত হয়নি। Settings বদলে এটিকে encrypted বলা যাবে না।
-
-## Backup জরুরি
-
-Database বন্ধ করার পরে:
+আগে database বন্ধ করো। Password অন্তত ১৬ অক্ষরের শক্তিশালী, আলাদাভাবে নিরাপদে রাখা মান ব্যবহার করো:
 
 ```js
+await BsonLite.disconnect();
 await BsonLite.backup({
-  directory: './DatabaseEncrypted',
+  directory: './Database',
   file: './backup.bslbackup',
   password: process.env.MY_BACKUP_PASSWORD
 });
 ```
 
-অন্তত ১৬ অক্ষরের শক্তিশালী password ব্যবহার করবে এবং আলাদাভাবে নিরাপদে রাখবে। Windows reinstall বা অন্য PC-তে নেওয়ার জন্য matching encrypted backup দরকার। Password/key দুটোই হারালে data উদ্ধার করার কোনো master bypass key নেই।
+নতুন PC/account-এ, একই OS/architecture/engine profile ব্যবহার করে:
 
-এই preview-কে এখনই production-ready বা bulletproof বলে বিক্রি করবে না। Windows build, clean-PC পরীক্ষা এবং security review বাকি আছে।
+```js
+await BsonLite.restore({
+  directory: './RestoredDatabase',
+  file: './backup.bslbackup',
+  password: process.env.MY_BACKUP_PASSWORD
+});
+await BsonLite.connect({ directory: './RestoredDatabase' });
+```
+
+Backup data key-ও encrypted অবস্থায় সংরক্ষণ করে এবং restore নতুন account-এর vault তৈরি করে। সব matching keys/backups/password হারালে vendor/master bypass key দিয়ে উদ্ধার করার ব্যবস্থা নেই।
+
+## Lock বা startup error
+
+অন্য app database ব্যবহার করলে সেটি আগে বন্ধ করো। Crash-এর পরে stale-lock error থাকলে সব using apps বন্ধ রেখে অন্তত ৬০ সেকেন্ড পরে app থেকে `BsonLite.recover({ directory: './Database' })` ব্যবহার করা যায়। এটি live process বা অস্পষ্ট ownership পেলে থামে; data reset বা process kill করে না। `Database` delete করে error সমাধান করবে না।
+
+## Security-এর সীমা
+
+এটি release candidate। Windows CI evidence artifact-এর সঙ্গে থাকে; clean Windows Home/Pro, নিজের packaged Electron/app, power-loss/disk-full এবং independent cryptography/storage audit এখনও আলাদা কাজ। MongoDB 4.0.28 end-of-life; custom encryption upstream security maintenance যোগ করে না।
+
+Disk files encrypted হলেও running app-এর memory, same-account malware/admin compromise, pagefile/hibernation, OS crash dumps ও rollback-এর বিরুদ্ধে সম্পূর্ণ সুরক্ষার দাবি নেই। বিস্তারিত `SECURITY.md`-এ। Product-কে “bulletproof” বলে বিক্রি করবে না। Distribution-এর জন্য দেওয়া licenses ও matching modified-engine source সংরক্ষণ করো।

@@ -1,8 +1,8 @@
 {
   "name": "bsonlite",
-  "version": "0.6.0-preview.2",
+  "version": "0.6.0-rc.1",
   "private": true,
-  "description": "Native-encryption development preview for the single-file MongoDB 4.0.28 SDK. Windows engine validation pending.",
+  "description": "Single-file offline MongoDB 4.0.28 SDK with native encryption. Windows x64 release candidate.",
   "main": "src/index.cjs",
   "engines": {
     "node": ">=20"

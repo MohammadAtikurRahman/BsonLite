@@ -1,6 +1,6 @@
-# Security model — 0.6.0-preview.2
+# Security model — 0.6.0-rc.1
 
-Development preview. No independent security audit or native Windows validation is claimed until the CI workflow actually succeeds.
+Release candidate. Native Windows evidence belongs to the exact artifact's successful CI run in validation.json. No independent security audit is claimed.
 
 MongoDB 4.0.28 is retained for the requested older-engine compatibility. MongoDB lists the 4.0 server line as end-of-life on April 30, 2022: https://www.mongodb.com/legal/support-policy/lifecycles. This custom encryption layer does not supply upstream server security maintenance. Loopback/mTLS limits exposure but does not replace that maintenance.
 
@@ -17,7 +17,7 @@ MongoDB 4.0.28 is retained for the requested older-engine compatibility. MongoDB
 
 Each native database has independent random data-key bytes and a separate public key id. The key is stored with root credentials inside the protected vault: DPAPI CurrentUser on Windows; scrypt + AES-256-GCM for non-Windows source development. No fixed vendor/master recovery key is embedded.
 
-The supervisor hands the engine a single 56-byte binary frame through stdin and closes the pipe. Key material is not placed in engine arguments, environment or a raw-key file. The native key slot must be memory-lockable and is cleared/freed on ordinary teardown. JavaScript strings, active record/index caches and OS crash mechanisms do not have the same memory-lock guarantee.
+The supervisor hands the engine a single 56-byte binary frame through stdin and closes the pipe. Key material is not placed in engine arguments, environment or a raw-key file. The input frame is zeroed after loading and the native key slot must be memory-lockable. MongoDB's `quickExit` / `TerminateProcess` path bypasses CRT exit callbacks, so this engine retains the locked key slot until process termination; it does not promise explicit key-slot erasure on shutdown. JavaScript strings, active record/index caches and OS crash mechanisms do not have the same memory-lock guarantee.
 
 Normal application code receives a rotating readWrite account for its named database. Root credentials and the data key stay in the supervisor/native processes. The program author and same-account malware can still inspect process memory or use authorized APIs. Local admin compromise, pagefiles, hibernation, crash dumps, compromised runtimes and memory scraping are outside a file-encryption guarantee.
 
@@ -37,4 +37,4 @@ Do not steal incomplete/live locks or delete data to solve startup errors. `reco
 
 ## Release requirements
 
-The Windows workflow must compile and test the actual full engine, including actual aggregation spill files and a standalone CJS consumer. A clean Windows Home/Pro PC, parent Electron packaging, native prerequisites, crash/power-loss behavior, restore procedures and independent cryptography/storage review remain release gates beyond CI. The current source-preview bundle contains no encrypted Windows executable.
+The Windows workflow must compile and test the actual full engine, including actual aggregation spill files and a standalone CJS consumer. A clean Windows Home/Pro PC, parent Electron packaging, native prerequisites, crash/power-loss behavior, restore procedures and independent cryptography/storage review remain release gates beyond CI. Source-preview bundles contain no encrypted Windows executable; delivered native artifacts must have a matching successful validation record.

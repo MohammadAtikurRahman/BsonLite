@@ -20,6 +20,13 @@ function send(message) {
     try { process.send(message, function () {}); } catch (_) {}
   }
 }
+function startupDiagnostic(error, auth) {
+  let detail = String(error && (error.message || error.code) || "Unknown connection error");
+  for (const secret of [auth && auth.password, auth && auth.dataKey]) {
+    if (typeof secret === "string" && secret) detail = detail.split(secret).join("[redacted]");
+  }
+  return detail.replace(/[\x00-\x1f\x7f-\x9f]/g, " ").slice(0, 512);
+}
 function freePort() {
   return new Promise(function (resolve, reject) {
     const server = net.createServer();
@@ -136,6 +143,7 @@ function run() {
   }
   async function connectReady(port, auth, logPath, deadline) {
     let attemptedBootstrap = false;
+    let lastConnectionError;
     while (Date.now() < deadline) {
       checkClosing();
       if (engine.exitCode !== null || engine.signalCode !== null) {
@@ -148,6 +156,7 @@ function run() {
         await candidate.db("admin").command({ ping: 1 });
         return candidate;
       } catch (error) {
+        lastConnectionError = error;
         await candidate.close();
         if (error.code === 18) {
           if (attemptedBootstrap) {
@@ -160,7 +169,8 @@ function run() {
         }
       }
     }
-    throw new BsonLiteError("BSONLITE_START_TIMEOUT", "MongoDB did not become ready. Private diagnostic log: " + logPath);
+    const detail = lastConnectionError ? " Last connection error: " + startupDiagnostic(lastConnectionError, auth) : "";
+    throw new BsonLiteError("BSONLITE_START_TIMEOUT", "MongoDB did not become ready." + detail + " Private diagnostic log: " + logPath);
   }
   async function initialize(config) {
     options = config;
@@ -298,4 +308,4 @@ function run() {
     failed = true; send({ type: "error", error: serialize(error) }); void requestStop();
   });
 }
-module.exports = { run };
+module.exports = { run, startupDiagnostic };

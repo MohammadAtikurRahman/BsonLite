@@ -56,15 +56,26 @@ test("a wrong protected data key fails authentication without resetting existing
 });
 
 test("migration preserves documents, numeric BSON types, text indexes and views",live,async()=>{
- const root=temp(),directory=path.join(root,"Old"),destination=path.join(root,"Encrypted");let db;
+ const root=temp(),directory=path.join(root,"Old"),destination=path.join(root,"Encrypted");let db,stage="open legacy source";
  try{db=await B.open({...options(directory),storageEncryption:"auto"});await db.createCollection("items",{validator:{n:{$type:"int"}}});await db.collection("items").createIndex({title:"text"},{weights:{title:2},name:"title_text"});await db.collection("items").createIndex({n:1},{unique:true});
   const id=new B.ObjectId();await db.collection("items").insertOne({_id:id,n:new Int32(7),floating:new Double(7),big:Long.fromString("9223372036854775806"),title:"portable offline",rx:new BSONRegExp("Atik","i")});await db.createCollection("item_view",{viewOn:"items",pipeline:[{$match:{n:{$gte:1}}}]});await db.close();db=null;
-  const old=metadata(directory);old.formatVersion=2;fs.writeFileSync(path.join(directory,"bsonlite.json"),JSON.stringify(old));
+  stage="migrate seeded source";const old=metadata(directory);old.formatVersion=2;fs.writeFileSync(path.join(directory,"bsonlite.json"),JSON.stringify(old));
   await assert.rejects(B.open(options(directory)),e=>e.code==="BSONLITE_NATIVE_MIGRATION_REQUIRED");
   const result=await B.migrate({sourceDirectory:directory,directory:destination,binaryPath:binary,nativeManifest:manifest,vaultPassword,storageEncryption:policy});assert.equal(result.originalPreserved,true);
   const guardBytes=fs.readFileSync(path.join(destination,"migration.json"));const guard=JSON.parse(guardBytes);assert.equal(guard.state,"complete");assert.equal(guard.collectionCount,1);assert.equal(guard.documentCount,1);assert.equal(guard.viewCount,1);assert.ok(guardBytes.length<512);assert.equal(guardBytes.includes(Buffer.from("item_view")),false);
-  db=await B.open(options(destination));const saved=await db.collection("items").findOne({_id:id},{promoteValues:false,promoteLongs:false,bsonRegExp:true});assert.equal(saved.n._bsontype,"Int32");assert.equal(saved.floating._bsontype,"Double");assert.equal(saved.big.toString(),"9223372036854775806");assert.equal(saved.rx._bsontype,"BSONRegExp");assert.equal(await db.collection("items").countDocuments({$text:{$search:"offline"}}),1);assert.equal(await db.collection("item_view").countDocuments(),1);await db.close();db=null;
-  db=await B.open({...options(directory),storageEncryption:"auto"});assert.equal(await db.collection("items").countDocuments(),1);
+  stage="verify native destination";db=await B.open(options(destination));const saved=await db.collection("items").findOne({_id:id},{promoteValues:false,promoteLongs:false,bsonRegExp:true});assert.equal(saved.n._bsontype,"Int32");assert.equal(saved.floating._bsontype,"Double");assert.equal(saved.big.toString(),"9223372036854775806");assert.equal(saved.rx._bsontype,"BSONRegExp");assert.equal(await db.collection("items").countDocuments({$text:{$search:"offline"}}),1);assert.equal(await db.collection("item_view").countDocuments(),1);await db.close();db=null;
+  stage="reopen preserved source";db=await B.open({...options(directory),storageEncryption:"auto"});assert.equal(await db.collection("items").countDocuments(),1);
+ }catch(error){
+  // Only this synthetic fixture's legacy diagnostic log is printed on failure.
+  // Its protected credentials are removed before any bounded text is emitted.
+  console.error("[migration fixture]",stage,error.code);
+  const file=path.join(directory,"logs/bsonlite.log");
+  if(fs.existsSync(file)){
+   let tail=fs.readFileSync(file,"utf8").slice(-8192);
+   try{const m=metadata(directory);const {auth}=await require("../src/vault.cjs").loadVault(path.join(managed,"stores",m.storeId,"vault.json"),m.storeId,options(directory));for(const value of [auth.password,auth.dataKey])if(value)tail=tail.split(value).join("[redacted]");}catch(_){tail="Fixture log withheld: protected credentials could not be loaded for redaction.";}
+   console.error("[migration fixture legacy log]",tail);
+  }
+  throw error;
  }finally{if(db)await db.close();clean(root);}
 });
 

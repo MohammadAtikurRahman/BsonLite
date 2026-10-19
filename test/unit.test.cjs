@@ -88,6 +88,14 @@ test("protected storage restricts preexisting descendants", async () => {
     }
   } finally { fs.rmSync(directory, { recursive: true, force: true }); }
 });
+test("startup diagnostics preserve the reason while redacting secrets and bounding terminal output", () => {
+  const { startupDiagnostic } = require("../src/supervisor.cjs");
+  const auth = { password: "PRIVATE_PASSWORD_SENTINEL", dataKey: "f".repeat(64) };
+  const result = startupDiagnostic(new Error("TLS certificate failure " + auth.password + " " + auth.dataKey + "\n\x1b[31m" + "x".repeat(2048)), auth);
+  assert.match(result, /TLS certificate failure/);
+  assert.equal(result.includes(auth.password), false); assert.equal(result.includes(auth.dataKey), false);
+  assert.equal(/[\x00-\x1f\x7f-\x9f]/.test(result), false); assert.ok(result.length <= 512);
+});
 test("directory locks reject concurrent access and release only their token", () => {
   const directory = temp();
   try {
