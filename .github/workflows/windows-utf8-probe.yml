@@ -1,0 +1,76 @@
+name: Verify legacy Windows UTF-8 file paths
+on:
+  push:
+    branches: [validation/windows-utf8]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  file-paths:
+    runs-on: windows-2022
+    timeout-minutes: 30
+    steps:
+      - name: Compile and run using the engine's v141 static CRT profile
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = 'Stop'
+          $vswhere = Join-Path ${env:ProgramFiles(x86)} 'Microsoft Visual Studio/Installer/vswhere.exe'
+          $vs = (& $vswhere -latest -products '*' -property installationPath | Select-Object -First 1)
+          if (-not $vs) { throw 'Visual Studio is required on the test host.' }
+          $tools = @(Get-ChildItem (Join-Path $vs 'VC/Tools/MSVC') -Directory -Filter '14.16.*' -ErrorAction SilentlyContinue)
+          $sdk = Join-Path ${env:ProgramFiles(x86)} 'Windows Kits/10/Include/10.0.19041.0'
+          if (-not $tools.Count -or -not (Test-Path $sdk)) {
+            $installer = Join-Path ${env:ProgramFiles(x86)} 'Microsoft Visual Studio/Installer/vs_installer.exe'
+            $installArgs = @('modify', '--installPath', ('"' + $vs + '"'), '--add', 'Microsoft.VisualStudio.Component.VC.v141.x86.x64', '--add', 'Microsoft.VisualStudio.Component.Windows10SDK.19041', '--quiet', '--norestart', '--nocache')
+            $installation = Start-Process -FilePath $installer -ArgumentList $installArgs -Wait -PassThru
+            if ($installation.ExitCode -notin @(0,3010)) { throw "Tool installation failed: $($installation.ExitCode)" }
+          }
+          $wrapper = Join-Path $PWD 'probe-vcvars.cmd'
+          $vcvars = Join-Path $vs 'VC/Auxiliary/Build/vcvarsall.bat'
+          Set-Content $wrapper -Encoding ascii -Value ('@call "' + $vcvars + '" x64 10.0.19041.0 -vcvars_ver=14.16')
+          $compilerEnvironment = & $env:ComSpec /d /s /c ('"' + $wrapper + '" >nul && set')
+          if ($LASTEXITCODE -ne 0) { throw 'Compiler setup failed.' }
+          foreach ($line in $compilerEnvironment) {
+            if ($line -match '^([^=]+)=(.*)$') { [Environment]::SetEnvironmentVariable($matches[1], $matches[2], 'Process') }
+          }
+          @'
+          #include <windows.h>
+          #include <fstream>
+          #include <intrin.h>
+          #include <limits>
+          #include <cstdio>
+          #include <string>
+          int main() {
+              if (GetACP() != CP_UTF8) { std::puts("Process code page is not UTF-8"); return 1; }
+              const wchar_t* directory = L"পরীক্ষা পথ";
+              const wchar_t* wideFile = L"পরীক্ষা পথ\\spill বাংলা.tmp";
+              const std::string file = u8"পরীক্ষা পথ\\spill বাংলা.tmp";
+              if (!CreateDirectoryW(directory, nullptr)) return 2;
+              { std::ofstream out(file, std::ios::binary); out << "ciphertext-probe"; if (!out.good()) return 3; }
+              { std::ifstream in(file, std::ios::binary); std::string text; in >> text; if (text != "ciphertext-probe") return 4; }
+              if (!DeleteFileW(wideFile) || !RemoveDirectoryW(directory)) return 5;
+              __int64 high;
+              __int64 low = _mul128((std::numeric_limits<__int64>::max)(), 2, &high);
+              if (high != 0 || low != -2) return 6;
+              low = _mul128(-3, 7, &high);
+              if (high != -1 || low != -21) return 7;
+              std::puts("LEGACY_CRT_UTF8_AND_INTRINSIC_OK");
+              return 0;
+          }
+          '@ | Set-Content 'probe.cpp' -Encoding utf8NoBOM
+          & cl.exe /nologo /W4 /O2 /MT /utf-8 /EHsc probe.cpp /Fe:probe.exe
+          if ($LASTEXITCODE -ne 0) { throw 'The actual v141 probe did not compile.' }
+          @'
+          <?xml version="1.0" encoding="UTF-8"?>
+          <assembly xmlns="urn:schemas-microsoft-com:asm.v1" manifestVersion="1.0">
+            <asmv3:application xmlns:asmv3="urn:schemas-microsoft-com:asm.v3">
+              <asmv3:windowsSettings>
+                <activeCodePage xmlns="http://schemas.microsoft.com/SMI/2019/WindowsSettings">UTF-8</activeCodePage>
+              </asmv3:windowsSettings>
+            </asmv3:application>
+          </assembly>
+          '@ | Set-Content 'utf8.manifest' -Encoding utf8NoBOM
+          & mt.exe -nologo -manifest utf8.manifest '-outputresource:probe.exe;#1'
+          if ($LASTEXITCODE -ne 0) { throw 'Manifest embedding failed.' }
+          & ./probe.exe
+          if ($LASTEXITCODE -ne 0) { throw "The real UTF-8/intrinsic probe failed: $LASTEXITCODE" }
