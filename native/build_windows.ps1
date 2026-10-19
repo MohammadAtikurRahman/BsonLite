@@ -30,7 +30,7 @@ if ($InstallBuildTools) {
         throw "The Python 2 build-host runtime installation failed: $($runtimeInstallation.ExitCode)"
     }
 }
-Invoke-Checked $python27 @('-c', 'import sys,yaml,typing; assert sys.version_info[:2] == (2,7)')
+Invoke-Checked $python27 @('-c', 'import sys,yaml,typing,win32api; assert sys.version_info[:2] == (2,7)')
 $vswhere = Join-Path ${env:ProgramFiles(x86)} 'Microsoft Visual Studio/Installer/vswhere.exe'
 if (-not (Test-Path $vswhere)) { throw 'Install Visual Studio Build Tools with the v141 x64 toolset on the build host.' }
 $vs = (& $vswhere -latest -products '*' -property installationPath | Select-Object -First 1)

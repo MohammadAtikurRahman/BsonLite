@@ -3,6 +3,7 @@ import argparse
 import hashlib
 import json
 from pathlib import Path
+import shutil
 import tarfile
 import urllib.request
 import zipfile
@@ -91,6 +92,10 @@ def main():
             key = "wheel" + str(i)
             LOCK[key] = wheel
             unpack(download(key, work), packages)
+        # Keep pywin32's dependent DLLs beside the private build interpreter.
+        # No post-install script, registry writes or system-directory copies.
+        for file in (packages / "pywin32_system32").glob("*.dll"):
+            shutil.copyfile(file, python_root / "tools" / file.name)
     print(json.dumps({"mongo": str(mongo), "work": str(work)}))
 
 

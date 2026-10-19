@@ -54,6 +54,12 @@ Export('module_sconscripts')""" % str(sodium_library.resolve()))
         std::puts("{\\\"bsonliteNativeEncryption\\\":1,\\\"cipher\\\":\\\"xchacha20-poly1305\\\",\\\"selfTest\\\":true,\\\"temporaryFiles\\\":true,\\\"libsodium\\\":\\\"1.0.22\\\"}");
         return 0;
     }""")
+    # SChannel's PEM reader otherwise opens UTF-8 paths with the ANSI CRT API.
+    # Private OS data can be under a non-ASCII Windows account/profile name.
+    replace(mongo, "src/mongo/util/net/ssl_manager_windows.cpp",
+            '    std::ifstream pemFile(fileName.toString(), std::ios::binary);',
+            '    const auto wideName = toWideString(fileName.toString().c_str());\n'
+            '    std::ifstream pemFile(wideName.c_str(), std::ios::binary);')
     hooks = "src/mongo/db/storage/encryption_hooks.cpp"
     replace(mongo, hooks, '#include "mongo/platform/basic.h"', '#include "mongo/platform/basic.h"\n' + include)
     replace(mongo, hooks, '    return false;\n}\n\nbool EncryptionHooks::restartRequired()', '    return bsonlite_key_ready() != 0;\n}\n\nbool EncryptionHooks::restartRequired()')
