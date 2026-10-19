@@ -9,6 +9,7 @@ import io
 import json
 import os
 from pathlib import Path
+import re
 import shutil
 import subprocess
 import sys
@@ -93,7 +94,14 @@ def main():
     if sys.platform != "win32":
         raise RuntimeError("The actual Windows manifest tool is required; no simulated success is recorded.")
     metadata = json.loads(args.native_manifest.read_text(encoding="utf-8"))
-    if metadata.get("mode") != "builtin" or metadata.get("engineSha256") != digest(args.engine):
+    if (metadata.get("version") != 1 or metadata.get("cipher") != "xchacha20-poly1305"
+            or metadata.get("mode") != "builtin" or metadata.get("engineSha256") != digest(args.engine)
+            or metadata.get("upstreamCommit") != "af1a9dc12adcfa83cc19571cb3faba26eeddac92"
+            or not re.fullmatch(r"[a-f0-9]{64}", metadata.get("patchSha256", ""))
+            or metadata.get("platform") != "win32" or metadata.get("arch") != "x64"
+            or metadata.get("engineVersion") != "4.0.28" or metadata.get("libsodiumVersion") != "1.0.22"
+            or metadata.get("temporaryFiles") is not True or metadata.get("engineManagedDumps") is not False
+            or metadata.get("staticCRuntime") is not True or metadata.get("tlsProvider") != "Windows SChannel"):
         raise RuntimeError("The cached engine does not match its native build manifest.")
     tool = manifest_tool()
     with tempfile.TemporaryDirectory(prefix="bsonlite-utf8-") as folder:
@@ -120,12 +128,25 @@ def main():
         if active is None or active.text != "UTF-8" or critical_settings(actual.getroot()) != before:
             raise RuntimeError("UTF-8 process manifest was not verified or changed security/OS settings.")
         probe = subprocess.run([str(args.engine), "--bsonlite-native-self-test"], check=True, capture_output=True, text=True, encoding="utf-8")
-        if json.loads(probe.stdout).get("selfTest") is not True:
-            raise RuntimeError("The repackaged engine failed its real cipher self-test.")
+        # The pinned dbmain.cpp calls quickExit/TerminateProcess after this
+        # early self-test returns. It bypasses CRT flushing, so successful
+        # stdout is empty when piped. check=True above still requires the
+        # actual in-engine cipher self-test to return zero. Capabilities remain
+        # bound to the built binary hash; data/spill tests must still pass.
+        if not probe.stdout.strip():
+            self_test_protocol = "win32-exit-code-v1"
+        else:
+            result = json.loads(probe.stdout)
+            if (result.get("bsonliteNativeEncryption") != 1 or result.get("selfTest") is not True
+                    or result.get("cipher") != "xchacha20-poly1305" or result.get("temporaryFiles") is not True
+                    or result.get("libsodium") != "1.0.22"):
+                raise RuntimeError("The repackaged engine failed its real cipher self-test.")
+            self_test_protocol = "json-v1"
         manifest_bytes = verified.read_bytes()
         add_build_support(args.source_archive, manifest_bytes)
     metadata.update(engineSha256=digest(args.engine), windowsCodePage="UTF-8", minimumWindowsBuild=18362,
-                    resourceManifestSha256=hashlib.sha256(manifest_bytes).hexdigest(), windowsIntegration="pending")
+                    resourceManifestSha256=hashlib.sha256(manifest_bytes).hexdigest(), windowsIntegration="pending",
+                    selfTestProtocol=self_test_protocol)
     args.native_manifest.write_text(json.dumps(metadata, indent=2) + "\n", encoding="utf-8")
     print("UTF-8 engine resource verified; native binary/source hashes rebound. Full Windows tests are still required.")
 

@@ -24,7 +24,9 @@ test("require and import work in an empty project without npm install or import 
   try {
     fs.copyFileSync(distribution, path.join(directory, "BsonLite.cjs"));
     const assertion = "if(BsonLite.engineVersion!=='4.0.28'||BsonLite.driverVersion!=='6.16.0')throw Error('Wrong versions');" +
-      "if(!new BsonLite.ObjectId().toHexString())throw Error('BSON unavailable');console.log('PACKAGED_OK');";
+      "if(!new BsonLite.ObjectId().toHexString())throw Error('BSON unavailable');" +
+      "const BSON=BsonLite.BSON;const saved=BSON.deserialize(BSON.serialize({big:BSON.Long.fromString('9223372036854775806'),amount:BSON.Decimal128.fromString('10.25')}),{promoteLongs:false});" +
+      "if(saved.big.toString()!=='9223372036854775806'||saved.amount.toString()!=='10.25')throw Error('BSON precision lost');console.log('PACKAGED_OK');";
     fs.writeFileSync(path.join(directory, "app.cjs"), "const BsonLite=require('./BsonLite.cjs');" + assertion);
     fs.writeFileSync(path.join(directory, "app.mjs"), "import BsonLite from './BsonLite.cjs';" + assertion);
     for (const file of ["app.cjs", "app.mjs"]) {

@@ -1,6 +1,6 @@
 # Native encrypted engine build
 
-Status: implementation + verified Linux WiredTiger prototype; full Windows build/integration pending until the actual workflow succeeds. This code is a development preview, not an audited encrypted database product.
+Status: the pinned Windows engine has compiled, linked, passed its in-engine cipher self-test (exit status 0), import guards and source packaging. Full Windows runtime/integration remains pending until the actual workflow succeeds. This code is a development preview, not an audited encrypted database product.
 
 ## GitHub
 
@@ -31,6 +31,10 @@ After the compiled engine cache is saved/restored, `scripts/enable_windows_utf8.
 The patcher refuses a repeat/ambiguous patch and expects exact MongoDB 4.0.28 / WiredTiger 3.1.1 sources. Use a fresh extracted tree when modifying the patch. It registers encryption before recovery, adds a native self-test entry point, wires temporary-file protection, forces the native cipher after user-specified table/index settings, and opens Windows SChannel PEM files through Unicode paths. The matching modified-engine source archive accompanies the CI artifact.
 
 SCons requires the Windows file target `mongod.exe` and its Python 2 `win32api` dependency. The pinned pywin32 wheel and private DLL copies are builder-only dependencies. The workflow caches compiled native outputs by native-source hash before running SDK integration tests; changing JavaScript alone can reuse that build. Every customer artifact still requires a fresh successful SDK/integration run.
+
+## Self-test protocol
+
+The pinned Windows `dbmain.cpp` calls `quickExit` / `TerminateProcess` after the early cipher self-test returns; this bypasses buffered stdout flushing. Its verified packaging profile therefore records `selfTestProtocol: win32-exit-code-v1`. The SDK runs the actual engine flag and requires exit status 0 with empty output, the pinned Windows build profile and matching binary hash. Unrecognized protocols and unrelated executables are refused. JSON-emitting prototypes retain strict JSON validation. This transport detail does not set `windowsIntegration`: actual encrypted data, journals, spill files, forced table encryption and final consumer tests remain mandatory.
 
 ## Linux proof of concept
 

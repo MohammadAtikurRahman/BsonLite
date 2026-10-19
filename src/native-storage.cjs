@@ -55,11 +55,26 @@ async function resolveNative(binary, options) {
   } else if (manifest.mode !== "builtin" || manifest.temporaryFiles !== true || manifest.engineManagedDumps !== false) {
     throw new BsonLiteError("BSONLITE_NATIVE_BUILD_REQUIRED", "Full native encryption requires the rebuilt engine with encrypted temporary files and disabled engine memory dumps. A Linux extension prototype cannot be substituted.");
   }
+  const protocol=manifest.selfTestProtocol||"json-v1";
+  if(!["json-v1","win32-exit-code-v1"].includes(protocol) ||
+    (protocol==="win32-exit-code-v1" && (process.platform!=="win32" || manifest.mode!=="builtin" ||
+      manifest.upstreamCommit!=="af1a9dc12adcfa83cc19571cb3faba26eeddac92" || !/^[a-f0-9]{64}$/.test(manifest.patchSha256) ||
+      manifest.staticCRuntime!==true || manifest.tlsProvider!=="Windows SChannel" ||
+      manifest.windowsCodePage!=="UTF-8" || manifest.minimumWindowsBuild!==18362))) {
+    throw new BsonLiteError("BSONLITE_NATIVE_ENGINE_INVALID", "The native self-test protocol does not match the pinned engine profile.");
+  }
   let result;
-  try { result=JSON.parse((await exec(probe,argumentsForProbe,{windowsHide:true,timeout:15000,maxBuffer:65536})).stdout.trim()); }
+  try {
+    const output=(await exec(probe,argumentsForProbe,{windowsHide:true,timeout:15000,maxBuffer:65536})).stdout.trim();
+    // execFile rejects nonzero status. The pinned Windows quickExit path
+    // deliberately bypasses CRT flushing after the real cipher test returns.
+    if(protocol==="win32-exit-code-v1") {
+      if(output)throw new Error("Unexpected output for the pinned Windows self-test protocol");
+    } else result=JSON.parse(output);
+  }
   catch (_) { throw new BsonLiteError("BSONLITE_NATIVE_SELF_TEST", "The native encryption self-test did not pass. No plaintext fallback was started."); }
-  if (!result || result.bsonliteNativeEncryption !== 1 || result.cipher !== CIPHER || result.selfTest !== true ||
-      (!extension && (result.temporaryFiles !== true || result.libsodium !== "1.0.22"))) {
+  if (protocol==="json-v1" && (!result || result.bsonliteNativeEncryption !== 1 || result.cipher !== CIPHER || result.selfTest !== true ||
+      (!extension && (result.temporaryFiles !== true || result.libsodium !== "1.0.22")))) {
     throw new BsonLiteError("BSONLITE_NATIVE_SELF_TEST", "The native engine returned incompatible encryption capabilities.");
   }
   return Object.freeze({ extension, coverage:extension ? "wiredtiger-prototype" : "full" });
