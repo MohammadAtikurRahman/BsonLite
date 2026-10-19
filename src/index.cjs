@@ -1,7 +1,7 @@
 "use strict";
 const { fork } = require("node:child_process");
 const { inspect } = require("node:util");
-const { MongoClient, ObjectId } = require("mongodb");
+const { MongoClient, ObjectId, BSON } = require("mongodb");
 const { normalizeOptions } = require("./util.cjs");
 const { BsonLiteError } = require("./errors.cjs");
 const { createSharedAPI } = require("./shared.cjs");
@@ -181,7 +181,7 @@ module.exports = Object.freeze({
   restore: require("./backup.cjs").restore,
   recover: require("./recovery.cjs").recover,
   migrate: require("./migrate.cjs").createMigrator(open),
-  open: open, ObjectId: ObjectId, BsonLiteError: BsonLiteError,
+  open: open, ObjectId: ObjectId, BSON: BSON, BsonLiteError: BsonLiteError,
   version: VERSION, engineVersion: ENGINE_VERSION, driverVersion: DRIVER_VERSION
 });
 if (require.main === module && process.argv[2] === SUPERVISOR_FLAG) {

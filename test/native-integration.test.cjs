@@ -1,10 +1,10 @@
 "use strict";
 const test=require("node:test"),assert=require("node:assert/strict"),fs=require("node:fs"),os=require("node:os"),path=require("node:path"),crypto=require("node:crypto");
-const {Long,Int32,Double,BSONRegExp}=require("mongodb");
 const {spawn,spawnSync}=require("node:child_process");
 // Exercise Unicode in vault/TLS/engine paths as well as the project data path.
 const managed=fs.mkdtempSync(path.join(os.tmpdir(),"bsonlite-managed-পরীক্ষা-"));process.env.BSONLITE_DATA_HOME=managed;
 const B=require(process.env.BSONLITE_TEST_MODULE||"../src/index.cjs");
+const {Long,Int32,Double,BSONRegExp}=B.BSON;
 const binary=process.env.BSONLITE_NATIVE_BINARY,manifest=process.env.BSONLITE_NATIVE_MANIFEST;
 const enabled=Boolean(binary&&manifest),kind=enabled?JSON.parse(fs.readFileSync(manifest,"utf8")).mode:null;
 const prototype=kind==="extension-prototype",live=enabled?{}:{skip:"Set BSONLITE_NATIVE_BINARY and BSONLITE_NATIVE_MANIFEST."};
