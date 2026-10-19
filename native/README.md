@@ -4,7 +4,7 @@ The pinned Windows engine has compiled, linked, passed its in-engine cipher self
 
 ## GitHub
 
-The private repository is `MohammadAtikurRahman/BsonLite`, and the source/workflows have been published on `main`. GitHub Actions is executing the native Windows build. Windows SDK, DPAPI/ACL/Unicode helper and source-preview packaging checks have passed. The full engine and embedded artifact still require their successful native run. See `NEW_REPOSITORY_BN.md` for repository/build details.
+The private repository is `MohammadAtikurRahman/BsonLite`, with source/workflows on `main`. The complete native Windows workflow passed in [run 39260874503](https://github.com/MohammadAtikurRahman/BsonLite/actions/runs/39260874503), including DPAPI/ACL/Unicode helpers, real encrypted data and spills, migration, the final embedded consumer and earlier-format compatibility. See `TEST_RESULTS.md` for exact suite counts and remaining platform/release limits, and `NEW_REPOSITORY_BN.md` for repository/build details.
 
 Place this SDK project at the new repository root. A push to `main` starts `.github/workflows/native-windows.yml`; **Actions → Build native encrypted Windows SDK → Run workflow** also permits a manual run. It only uploads **BsonLite-native-Windows-x64-<commit>** after all tests pass. The artifact includes checksums and the source commit/run reference. If keeping the SDK in a subfolder of an existing repository, move the workflow to the repository-level `.github/workflows/` and adjust working-directory and artifact paths to that subfolder.
 
@@ -12,7 +12,7 @@ A new workflow may need the repository owner's Actions approval or the connected
 
 ## Developer Windows build
 
-Use Windows x64, PowerShell 7, Python 3.12, Node.js 20+, Visual Studio Build Tools with v141, its matching ATL headers and Windows SDK 10.0.19041.0. Python 2.7.18 is downloaded privately as a verified build-only NuGet package. With `-InstallBuildTools`, the builder also installs the pinned Microsoft VC90 runtime on the build host after SHA-256 and Authenticode verification. That installer URL is taken from Microsoft's official [redistributable downloads](https://learn.microsoft.com/en-us/cpp/windows/latest-supported-vc-redist/). No Python/compilers or VC90 installer are delivered in the customer SDK. The installer, compiler configuration and Windows crypto probe have run in CI; full engine validation remains pending.
+Use Windows x64, PowerShell 7, Python 3.12, Node.js 20+, Visual Studio Build Tools with v141, its matching ATL headers and Windows SDK 10.0.19041.0. Python 2.7.18 is downloaded privately as a verified build-only NuGet package. With `-InstallBuildTools`, the builder also installs the pinned Microsoft VC90 runtime on the build host after SHA-256 and Authenticode verification. That installer URL is taken from Microsoft's official [redistributable downloads](https://learn.microsoft.com/en-us/cpp/windows/latest-supported-vc-redist/). No Python/compilers or VC90 installer are delivered in the customer SDK. The installer, compiler configuration, crypto probe, complete engine build and final runtime suites have run successfully in CI.
 
 ```powershell
 ./native/build_windows.ps1 -InstallBuildTools
