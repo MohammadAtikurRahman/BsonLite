@@ -1,0 +1,12 @@
+node_modules/
+dist/
+Database/
+DatabaseEncrypted/
+native/build/
+assets/native-win32-x64/mongod.exe
+assets/native-win32-x64/native-engine.json
+assets/win32-x64/
+*.bundle
+*.bslbackup
+.env
+__pycache__/

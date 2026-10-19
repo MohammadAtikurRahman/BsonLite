@@ -1,0 +1,31 @@
+{
+  "name": "bsonlite",
+  "version": "0.6.0-preview.2",
+  "private": true,
+  "description": "Native-encryption development preview for the single-file MongoDB 4.0.28 SDK. Windows engine validation pending.",
+  "main": "src/index.cjs",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "start": "node index.js",
+    "build": "node scripts/build.cjs",
+    "build:preview": "node scripts/build.cjs --preview-source",
+    "example": "node examples/app.cjs",
+    "example:esm": "node examples/app.mjs",
+    "test": "node --test test/unit.test.cjs test/security.test.cjs test/native.test.cjs",
+    "test:native-integration": "node --test --test-concurrency=1 test/native-integration.test.cjs",
+    "test:packaging": "node --test test/packaging.test.cjs",
+    "test:integration": "node --test --test-concurrency=1 test/integration.test.cjs",
+    "unlock": "node scripts/unlock.cjs"
+  },
+  "dependencies": {
+    "@peculiar/x509": "2.2.0",
+    "mongodb": "6.16.0",
+    "reflect-metadata": "0.2.2"
+  },
+  "devDependencies": {
+    "esbuild": "0.25.5"
+  },
+  "license": "MIT"
+}

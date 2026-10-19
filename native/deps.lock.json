@@ -1,0 +1,28 @@
+{
+  "mongo": {
+    "version": "4.0.28",
+    "commit": "af1a9dc12adcfa83cc19571cb3faba26eeddac92",
+    "url": "https://codeload.github.com/mongodb/mongo/tar.gz/af1a9dc12adcfa83cc19571cb3faba26eeddac92",
+    "sha256": "75ab90ff2fbb7d34e6bbc1ddfeef3a208efaadeef5b2f7d6f5a88ae4f7d7061e"
+  },
+  "sodium": {
+    "version": "1.0.22",
+    "url": "https://github.com/jedisct1/libsodium/releases/download/1.0.22-RELEASE/libsodium-1.0.22.tar.gz",
+    "sha256": "adbdd8f16149e81ac6078a03aca6fc03b592b89ef7b5ed83841c086191be3349"
+  },
+  "python2": {
+    "version": "2.7.18", "filename": "python2.nupkg",
+    "url": "https://www.nuget.org/api/v2/package/python2/2.7.18",
+    "sha256": "c8df5bd4c103f37a946e94f942a5625cdd84665ee160bbcc57af93857c892e22"
+  },
+  "vc90": {
+    "filename": "vcredist2008_x64.exe",
+    "url": "https://download.microsoft.com/download/5/D/8/5D8C65CB-C849-4025-8E95-C3966CAFD8AE/vcredist_x64.exe",
+    "sha256": "c5e273a4a16ab4d5471e91c7477719a2f45ddadb76c7f98a38fa5074a6838654"
+  },
+  "builder_wheels": [
+    {"filename":"PyYAML-5.3.1-cp27-cp27m-win_amd64.whl","url":"https://files.pythonhosted.org/packages/64/fe/f317d7e063051f76694d02462db3b48056e893bfb303b0eacc62310dbcdf/PyYAML-5.3.1-cp27-cp27m-win_amd64.whl","sha256":"240097ff019d7c70a4922b6869d8a86407758333f02203e0fc6ff79c5dcede76"},
+    {"filename":"Cheetah3-3.0.0-cp27-cp27m-win_amd64.whl","url":"https://files.pythonhosted.org/packages/7b/93/7054276d21f7e9c521d6ca16c67f1fb92c00fa83d8cebd49993a4dacdac0/Cheetah3-3.0.0-cp27-cp27m-win_amd64.whl","sha256":"efc4f0aa485129dd3a326417cb9e93d755646d5e9023c761fc627b244306a5e1"},
+    {"filename":"typing-3.6.6-py2-none-any.whl","url":"https://files.pythonhosted.org/packages/cc/3e/29f92b7aeda5b078c86d14f550bf85cff809042e3429ace7af6193c3bc9f/typing-3.6.6-py2-none-any.whl","sha256":"a4c8473ce11a65999c8f59cb093e70686b6c84c98df58c1dae9b3b196089858a"}
+  ]
+}

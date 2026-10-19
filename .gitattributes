@@ -1,0 +1,10 @@
+* text=auto eol=lf
+*.exe -text
+*.dll -text
+*.lib -text
+*.so -text
+*.gz -text
+*.zip -text
+*.bundle -text
+# Preserve upstream notices exactly, including their original line endings.
+licenses/* -text -whitespace

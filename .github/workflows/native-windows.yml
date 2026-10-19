@@ -1,0 +1,89 @@
+name: Build native encrypted Windows SDK
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+permissions:
+  contents: read
+concurrency:
+  group: native-windows-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  native-windows:
+    runs-on: windows-2022
+    timeout-minutes: 180
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1 # v6
+        with:
+          python-version: '3.12'
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7
+        with:
+          node-version: '24'
+          package-manager-cache: false
+      - name: Build patched engine and statically linked crypto library
+        shell: pwsh
+        run: ./native/build_windows.ps1 -InstallBuildTools
+      - run: npm ci
+      - run: npm test
+      - name: Test the native engine, DPAPI, encrypted data, migration and actual spill files
+        shell: pwsh
+        run: |
+          $env:BSONLITE_NATIVE_BINARY = Join-Path $PWD 'assets/native-win32-x64/mongod.exe'
+          $env:BSONLITE_NATIVE_MANIFEST = Join-Path $PWD 'assets/native-win32-x64/native-engine.json'
+          npm run test:native-integration
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $file = $env:BSONLITE_NATIVE_MANIFEST
+          $manifest = Get-Content $file -Raw | ConvertFrom-Json
+          $manifest.windowsIntegration = 'passed'
+          $manifest | ConvertTo-Json -Depth 5 | Set-Content $file -Encoding utf8NoBOM
+      - name: Bundle the validated encrypted engine
+        shell: pwsh
+        run: |
+          $env:BSONLITE_ENGINE_PATH = Join-Path $PWD 'assets/native-win32-x64/mongod.exe'
+          npm run build
+      - run: npm run test:packaging
+      - name: Test final single-file consumer artifact and earlier-format compatibility
+        shell: pwsh
+        run: |
+          $env:BSONLITE_TEST_MODULE = Join-Path $PWD 'dist/BsonLite.cjs'
+          $env:BSONLITE_NATIVE_BINARY = Join-Path $PWD 'assets/native-win32-x64/mongod.exe'
+          $env:BSONLITE_NATIVE_MANIFEST = Join-Path $PWD 'assets/native-win32-x64/native-engine.json'
+          npm run test:native-integration
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          npm run test:integration
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Record checksums and build provenance
+        shell: pwsh
+        run: |
+          $files = @('BsonLite.cjs', 'build-info.json')
+          $lines = foreach ($name in $files) {
+            $hash = (Get-FileHash (Join-Path 'dist' $name) -Algorithm SHA256).Hash.ToLowerInvariant()
+            "$hash  $name"
+          }
+          $lines | Set-Content dist/SHA256SUMS.txt -Encoding utf8NoBOM
+          $sourceHash = (Get-FileHash native/build/BsonLite-native-engine-source.tar.gz -Algorithm SHA256).Hash.ToLowerInvariant()
+          [ordered]@{
+            repository = $env:GITHUB_REPOSITORY
+            commit = $env:GITHUB_SHA
+            run = "$env:GITHUB_SERVER_URL/$env:GITHUB_REPOSITORY/actions/runs/$env:GITHUB_RUN_ID"
+            modifiedEngineSourceSha256 = $sourceHash
+            sourceAndBundledNativeTests = 'passed'
+            earlierFormatTests = 'passed'
+            cleanWindowsHomeAndProTest = 'pending'
+          } | ConvertTo-Json | Set-Content dist/validation.json -Encoding utf8NoBOM
+          "Windows engine, source SDK and standalone CJS checks passed for $env:GITHUB_SHA." >> $env:GITHUB_STEP_SUMMARY
+      - name: Upload only after every build and test step passed
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4
+        with:
+          name: BsonLite-native-Windows-x64-${{ github.sha }}
+          if-no-files-found: error
+          path: |
+            dist/
+            licenses/
+            START_HERE_BN.md
+            native/README.md
+            native/build/BsonLite-native-engine-source.tar.gz
+            assets/native-win32-x64/native-engine.json
