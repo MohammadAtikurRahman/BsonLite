@@ -71,8 +71,9 @@ test("migration preserves documents, numeric BSON types, text indexes and views"
   console.error("[migration fixture]",stage,error.code);
   const file=path.join(directory,"logs/bsonlite.log");
   if(fs.existsSync(file)){
-   let tail=fs.readFileSync(file,"utf8").slice(-8192);
+   let tail=fs.readFileSync(file,"utf8");
    try{const m=metadata(directory);const {auth}=await require("../src/vault.cjs").loadVault(path.join(managed,"stores",m.storeId,"vault.json"),m.storeId,options(directory));for(const value of [auth.password,auth.dataKey])if(value)tail=tail.split(value).join("[redacted]");}catch(_){tail="Fixture log withheld: protected credentials could not be loaded for redaction.";}
+   if(tail.length>8192)tail=tail.slice(0,4096)+"\n[... bounded fixture log ...]\n"+tail.slice(-4096);
    console.error("[migration fixture legacy log]",tail);
   }
   throw error;

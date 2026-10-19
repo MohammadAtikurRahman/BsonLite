@@ -27,6 +27,18 @@ function startupDiagnostic(error, auth) {
   }
   return detail.replace(/[\x00-\x1f\x7f-\x9f]/g, " ").slice(0, 512);
 }
+function createLegacyLog(file) {
+  const limit = 10 * 1024 * 1024;
+  const fd = fs.openSync(file, "a", 0o600);
+  let size = fs.fstatSync(fd).size, closed = false;
+  return {
+    write(bytes) {
+      if (closed || size >= limit) return;
+      size += fs.writeSync(fd, bytes.subarray(0, Math.min(bytes.length, limit - size)));
+    },
+    close() { if (!closed) { closed = true; fs.closeSync(fd); } }
+  };
+}
 function freePort() {
   return new Promise(function (resolve, reject) {
     const server = net.createServer();
@@ -83,7 +95,7 @@ async function applicationCredentials(client, name) {
 }
 function run() {
   if (!process.send) throw new Error("The supervisor must be started by BsonLite.open().");
-  let options, lock, managedLock, engine, engineExit, client, initialization, stopping, tls, encryptedLog;
+  let options, lock, managedLock, engine, engineExit, client, initialization, stopping, tls, processLog;
   let closing = false;
   let initialized = false;
   let failed = false;
@@ -127,7 +139,7 @@ function run() {
     stopping = (async function () {
       if (initialization) { try { await initialization; } catch (_) {} }
       await stopEngine();
-      if(encryptedLog){encryptedLog.close();encryptedLog=null;}
+      if(processLog){processLog.close();processLog=null;}
       if (tls) { tls.cleanup(); tls = null; }
       if (managedLock) { managedLock.release(); managedLock = null; }
       if (lock) { lock.release(); lock = null; }
@@ -200,12 +212,12 @@ function run() {
     tls = await createTLS(store.locations.sessions);
     checkClosing();
     const logPath = path.join(options.directory, "logs", useNative?"bsonlite.log.enc":"bsonlite.log");
-    if(useNative)encryptedLog=createEncryptedLog(logPath,auth);
-    if (fs.existsSync(logPath) && fs.statSync(logPath).size > 10 * 1024 * 1024) {
+    if (!useNative && fs.existsSync(logPath) && fs.statSync(logPath).size >= 10 * 1024 * 1024) {
       const previous = path.join(options.directory, "logs", "bsonlite.previous.log");
       fs.rmSync(previous, { force: true });
       fs.renameSync(logPath, previous);
     }
+    processLog=useNative?createEncryptedLog(logPath,auth):createLegacyLog(logPath);
     const deadline = Date.now() + options.startupTimeoutMS;
     send({ type: "starting-engine" });
     let port;
@@ -226,19 +238,18 @@ function run() {
         "--enableFreeMonitoring", "off"
       ];
       if(useNative)argumentsForEngine.push("--wiredTigerEngineConfigString",nativeConfig);
-      else argumentsForEngine.push("--logpath",logPath,"--logappend");
       if (process.platform !== "win32") argumentsForEngine.push("--nounixsocket");
       const engineEnv = { ...process.env };
       delete engineEnv.BSONLITE_VAULT_PASSWORD;
       delete engineEnv.BSONLITE_BACKUP_PASSWORD;
       engine = spawn(binary, argumentsForEngine,
-        { windowsHide: true, env: engineEnv, stdio: useNative?["pipe","pipe","pipe"]:["ignore", "ignore", "ignore"] });
+        { windowsHide: true, env: engineEnv, stdio: ["pipe","pipe","pipe"] });
+      engine.stdout.on("data",bytes=>processLog&&processLog.write(bytes,1));
+      engine.stderr.on("data",bytes=>processLog&&processLog.write(bytes,2));
+      engine.stdin.on("error",()=>{});
       if(useNative){
-        engine.stdout.on("data",bytes=>encryptedLog&&encryptedLog.write(bytes,1));
-        engine.stderr.on("data",bytes=>encryptedLog&&encryptedLog.write(bytes,2));
-        engine.stdin.on("error",()=>{});
         const frame=keyFrame(auth);engine.stdin.end(frame,()=>frame.fill(0));
-      }
+      }else engine.stdin.end();
       engineExit = new Promise(function (resolve) {
         engine.once("error", function () { resolve(); });
         engine.once("exit", function () { resolve(); });
