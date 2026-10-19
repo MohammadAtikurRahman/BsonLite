@@ -16,6 +16,7 @@ Use Windows x64, PowerShell 7, Python 3.12, Node.js 20+, Visual Studio Build Too
 
 ```powershell
 ./native/build_windows.ps1 -InstallBuildTools
+python scripts/enable_windows_utf8.py
 npm ci
 npm test
 $env:BSONLITE_NATIVE_BINARY = "$PWD/assets/native-win32-x64/mongod.exe"
@@ -24,6 +25,8 @@ npm run test:native-integration
 ```
 
 The workflow records successful Windows validation before `npm run build`. Do not fabricate the validation flag. The static library is built from pinned libsodium source with the same compiler/CRT as the engine. Windows SChannel handles TLS; no old OpenSSL DLL is added to the customer package. The build rejects unexpected VC/crypto DLL imports. Actual platform testing is still required.
+
+After the compiled engine cache is saved/restored, `scripts/enable_windows_utf8.py` uses the Windows SDK manifest tool to set this engine process's `activeCodePage` to UTF-8. This covers narrow CRT paths in the old external sorter without changing the customer's system locale. It preserves existing execution-level/OS manifest settings, rechecks the real cipher self-test, rebinds the binary hash, resets Windows validation to pending, and adds the manifest/helper/notices to the corresponding-source archive. This packaging stage does not change the cached C/C++ compilation inputs. The customer profile requires Windows 10 version 1903 (build 18362) or later, Windows 11, or a compatible Windows Server release. Its actual Unicode spill test must pass before a final artifact is published.
 
 The patcher refuses a repeat/ambiguous patch and expects exact MongoDB 4.0.28 / WiredTiger 3.1.1 sources. Use a fresh extracted tree when modifying the patch. It registers encryption before recovery, adds a native self-test entry point, wires temporary-file protection, forces the native cipher after user-specified table/index settings, and opens Windows SChannel PEM files through Unicode paths. The matching modified-engine source archive accompanies the CI artifact.
 
@@ -54,5 +57,6 @@ A raw 32-byte data key and 16-byte public id enter the engine through a single 5
 - Exact upstream source: https://github.com/mongodb/mongo/tree/af1a9dc12adcfa83cc19571cb3faba26eeddac92
 - XChaCha20-Poly1305: https://doc.libsodium.org/secret-key_cryptography/aead/chacha20-poly1305/xchacha20-poly1305_construction
 - DPAPI: https://learn.microsoft.com/en-us/windows/win32/api/dpapi/nf-dpapi-cryptprotectdata
+- Windows UTF-8 process manifest: https://learn.microsoft.com/en-us/windows/apps/design/globalizing/use-utf8-code-page
 
 Read the original SSPL/MongoDB notices, libsodium ISC license and SDK dependency notices before distribution. The wrapper's MIT license does not relicense the combined MongoDB engine.

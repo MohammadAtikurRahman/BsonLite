@@ -23,6 +23,11 @@ def patch(mongo, sodium_include, sodium_library):
     release = (mongo / "src/third_party/wiredtiger/RELEASE_INFO").read_text()
     if "WIREDTIGER_VERSION_MINOR=1" not in release or "WIREDTIGER_VERSION_PATCH=1" not in release:
         raise RuntimeError("Expected MongoDB 4.0.28 / WiredTiger 3.1.1")
+    # This upstream header uses _mul128 but relies on an unrelated include to
+    # declare it. Some translation units lack that incidental declaration on v141.
+    replace(mongo, "src/mongo/platform/overflow_arithmetic.h",
+            "#ifdef _MSC_VER\n#include <safeint.h>\n#endif",
+            "#ifdef _MSC_VER\n#include <intrin.h>\n#include <safeint.h>\n#endif")
     target = mongo / "src/third_party/wiredtiger/ext/encryptors/bsonlite"
     target.mkdir(parents=True)
     for name in ["bsonlite_crypto.c", "bsonlite_crypto.h", "bsonlite_wiredtiger.c"]:

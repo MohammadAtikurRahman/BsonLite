@@ -77,6 +77,7 @@ try {
     # Compile our changed units first, with the exact final build flags. This
     # catches old-server API/ABI mistakes before the lengthy untouched engine.
     $nativeTargets = @(
+        'build/opt/mongo/client/replica_set_monitor_stats.obj',
         'build/opt/mongo/db/storage/encryption_hooks.obj',
         'build/opt/mongo/db/storage/wiredtiger/wiredtiger_record_store.obj',
         'build/opt/mongo/db/storage/wiredtiger/wiredtiger_index.obj',
