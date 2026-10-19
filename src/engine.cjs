@@ -25,6 +25,10 @@ async function resolveEngine(options) {
         "This file contains MongoDB for " + embedded.platform + "/" + embedded.arch +
         ". Your runtime is " + process.platform + "/" + process.arch + ".");
     }
+    if (process.platform === "win32" && Number(require("node:os").release().split(".")[2]) < 18362) {
+      throw new BsonLiteError("BSONLITE_UNSUPPORTED_WINDOWS",
+        "This SDK requires Windows 10 version 1903 or later, Windows 11, or a compatible Windows Server release for Unicode file paths.");
+    }
     const folder = path.join(await prepareManagedRoot(), "engines",
       "mongodb-" + embedded.version + "-" + embedded.platform + "-" + embedded.arch + "-" + embedded.sha256.slice(0, 12));
     await protectDirectory(folder, []);

@@ -45,6 +45,9 @@ jobs:
             assets/native-win32-x64/
             native/build/win32-x64/crypto_probe.exe
             native/build/BsonLite-native-engine-source.tar.gz
+      - name: Enable Unicode paths in the compiled Windows engine
+        shell: pwsh
+        run: python scripts/enable_windows_utf8.py
       - run: npm ci
       - run: npm test
       - name: Test the native engine, DPAPI, encrypted data, migration and actual spill files

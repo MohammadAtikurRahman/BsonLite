@@ -12,6 +12,8 @@ The source preview CJS has no engine. `npm run build:preview` is for review/test
 
 For final customer use, include `BsonLite.cjs` in the app's backend/main process. Provide Node.js 20+ through a supported runtime, or package a compatible Electron app. Existing Electron fuses, ASAR placement, signing and spawning rules need an actual packaged-app test. This project does not supply an installer or standalone EXE.
 
+The final Windows engine packaging stage sets its process code page to UTF-8 with the Windows SDK manifest tool. Customer machines need Windows 10 version 1903 (build 18362) or later, Windows 11, or a compatible Windows Server release. No system-locale command or restart is requested. The helper updates the actual engine hash and requires a fresh real Windows test run; the unmodified C++ cache can be reused.
+
 Test an account without administrator privileges on fresh Windows Home and Pro installations. Verify that first launch has no compiler/crypto downloads, no EFS/BitLocker dependency, no unexpected DLL prerequisite, no plaintext database or process log, working restart and matching encrypted backup restore. CI's preinstalled software is not a substitute for a clean-PC check.
 
 Source and workflows are published in the private `MohammadAtikurRahman/BsonLite` repository. Windows SDK/security/Unicode helper and source-preview packaging checks have passed; native engine compilation is in progress. Pushing `main` starts the full workflow automatically; it publishes a downloadable Actions artifact only after every test succeeds. It does not publish a GitHub Release.

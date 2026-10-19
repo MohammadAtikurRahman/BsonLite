@@ -29,6 +29,7 @@ async function main() {
     const file=path.resolve(process.env.BSONLITE_NATIVE_MANIFEST||path.join(path.dirname(binary),"native-engine.json"));
     await require("../src/native-storage.cjs").resolveNative(binary,{storageEncryption:"native",nativeManifest:file});
     nativeManifest=JSON.parse(fs.readFileSync(file,"utf8"));
+    if(nativeManifest.windowsCodePage!=="UTF-8"||nativeManifest.minimumWindowsBuild!==18362)throw new Error("The engine's UTF-8 Windows process manifest has not been prepared. Run scripts/enable_windows_utf8.py before the Windows integration tests.");
     if(nativeManifest.windowsIntegration!=="passed")throw new Error("The Windows native integration checks have not passed. Use npm run build:preview for source review; production bundling is blocked.");
   }
   const bytes = sourceOnly?Buffer.alloc(0):fs.readFileSync(binary);

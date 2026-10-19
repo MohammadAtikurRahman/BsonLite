@@ -33,7 +33,7 @@ Other application files use `BsonLite.collection('users')` after startup. Data s
 
 | Area | Supported profile |
 | --- | --- |
-| Customer runtime | Windows x64 with Node.js 20+ or an app that packages a compatible runtime |
+| Customer runtime | Windows 10 version 1903+ / Windows 11 x64 with Node.js 20+ or an app that packages a compatible runtime |
 | Query API | MongoDB 4.0.28 CRUD, BSON values, indexes and aggregation operators supported by that server version |
 | Deployment | One standalone, authenticated MongoDB process bound to `127.0.0.1` |
 | Server-side JavaScript | Disabled; `$where` and JavaScript-based `mapReduce` are unavailable |
