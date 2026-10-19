@@ -114,6 +114,41 @@ test("recovery refuses a living owner and removes a proven stale lock without to
     lock.release();
   } finally { fs.rmSync(directory, { recursive: true, force: true }); }
 });
+test("native-store recovery checks both locks before preserving records and the protected vault", () => {
+  const root = temp(), directory = path.join(root, "Database");
+  const previous = process.env.BSONLITE_DATA_HOME;
+  process.env.BSONLITE_DATA_HOME = path.join(root, "private");
+  try {
+    fs.mkdirSync(path.join(directory, "data"), { recursive: true });
+    const record = path.join(directory, "data", "records"); fs.writeFileSync(record, "preserved");
+    const metadata = { ...metadataFor("d".repeat(32), "nativeapp", false),
+      nativeEncryption: { version: 1, cipher: "xchacha20-poly1305", keyId: "e".repeat(32), coverage: "full" } };
+    fs.writeFileSync(path.join(directory, "bsonlite.json"), JSON.stringify(metadata));
+    const locations = require("../src/paths.cjs").storePaths(metadata.storeId);
+    const projectLock = acquireLock(directory), managedLock = acquireLock(locations.root);
+    fs.writeFileSync(locations.vault, "protected vault fixture");
+    const deadPid = spawnSync(process.execPath, ["-e", ""]).pid;
+    function makeStale(lockDirectory) {
+      const file = path.join(lockDirectory, "instance.lock", "owner.json");
+      const owner = JSON.parse(fs.readFileSync(file));
+      fs.writeFileSync(file, JSON.stringify({ ...owner, supervisorPid: deadPid,
+        createdAt: new Date(Date.now() - 120000).toISOString() }));
+    }
+    makeStale(directory);
+    assert.throws(() => BsonLite.recover({ directory }), error => error.code === "BSONLITE_DATABASE_IN_USE");
+    assert.equal(fs.existsSync(path.join(directory, "instance.lock", "owner.json")), true);
+    makeStale(locations.root);
+    assert.equal(BsonLite.recover({ directory }).removedLocks, 2);
+    assert.equal(fs.readFileSync(record, "utf8"), "preserved");
+    assert.equal(fs.readFileSync(locations.vault, "utf8"), "protected vault fixture");
+    assert.deepEqual(readMetadata(directory), metadata);
+    projectLock.release(); managedLock.release();
+  } finally {
+    if (previous === undefined) delete process.env.BSONLITE_DATA_HOME;
+    else process.env.BSONLITE_DATA_HOME = previous;
+    fs.rmSync(root, { recursive: true, force: true });
+  }
+});
 test("missing metadata is distinct from incompatible or damaged metadata", () => {
   const directory = temp();
   try {

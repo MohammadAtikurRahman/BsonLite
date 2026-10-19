@@ -18,7 +18,7 @@ function recover(input = {}) {
   rejectLinks(root);
   const metadata = readMetadata(root);
   const locks = [path.join(root, "instance.lock"), path.join(root, "runtime", "instance.lock")];
-  if (metadata && metadata.formatVersion === 2) locks.push(path.join(storePaths(metadata.storeId).root, "instance.lock"));
+  if (metadata && metadata.formatVersion >= 2) locks.push(path.join(storePaths(metadata.storeId).root, "instance.lock"));
   const nativeLock = path.join(root, "data", "mongod.lock");
   if (fs.existsSync(nativeLock) && isAlive(Number(fs.readFileSync(nativeLock, "utf8").trim()))) {
     throw new BsonLiteError("BSONLITE_DATABASE_IN_USE", "The recorded MongoDB PID is alive. No process was killed and no lock was removed.");
