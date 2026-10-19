@@ -23,9 +23,28 @@ jobs:
         with:
           node-version: '24'
           package-manager-cache: false
+      - name: Restore compiled engine for unchanged native source
+        id: native-cache
+        uses: actions/cache/restore@caa296126883cff596d87d8935842f9db880ef25 # v5
+        with:
+          key: bsonlite-native-win2022-v141-19041-v1-${{ hashFiles('native/deps.lock.json', 'native/src/**', 'native/*.py', 'native/*.ps1') }}
+          path: |
+            assets/native-win32-x64/
+            native/build/win32-x64/crypto_probe.exe
+            native/build/BsonLite-native-engine-source.tar.gz
       - name: Build patched engine and statically linked crypto library
+        if: steps.native-cache.outputs.cache-hit != 'true'
         shell: pwsh
         run: ./native/build_windows.ps1 -InstallBuildTools
+      - name: Cache compiled engine before running SDK integration tests
+        if: steps.native-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@caa296126883cff596d87d8935842f9db880ef25 # v5
+        with:
+          key: ${{ steps.native-cache.outputs.cache-primary-key }}
+          path: |
+            assets/native-win32-x64/
+            native/build/win32-x64/crypto_probe.exe
+            native/build/BsonLite-native-engine-source.tar.gz
       - run: npm ci
       - run: npm test
       - name: Test the native engine, DPAPI, encrypted data, migration and actual spill files

@@ -10,8 +10,12 @@ function windowsJSON(script, input, code) {
     const env = { ...process.env };
     delete env.BSONLITE_VAULT_PASSWORD;
     delete env.BSONLITE_BACKUP_PASSWORD;
+    // Node pipes UTF-8; Windows PowerShell otherwise inherits a legacy code page.
+    const prelude = "$ErrorActionPreference='Stop'\n$ProgressPreference='SilentlyContinue'\n" +
+      "[Console]::InputEncoding=[System.Text.UTF8Encoding]::new($false,$true)\n" +
+      "[Console]::OutputEncoding=[System.Text.UTF8Encoding]::new($false)\n";
     const child = spawn(executable, ["-NoLogo", "-NoProfile", "-NonInteractive", "-EncodedCommand",
-      Buffer.from("$ErrorActionPreference='Stop'\n$ProgressPreference='SilentlyContinue'\n" + script, "utf16le").toString("base64")],
+      Buffer.from(prelude + script, "utf16le").toString("base64")],
     { windowsHide: true, env, stdio: ["pipe", "pipe", "pipe"] });
     let output = "", done = false;
     const timer = setTimeout(() => { child.kill(); fail("Windows security verification timed out."); }, 20000);
@@ -19,8 +23,9 @@ function windowsJSON(script, input, code) {
     child.once("error", () => fail("Cannot start the Windows security helper. Windows PowerShell is required."));
     child.stdin.on("error", () => {});
     child.stderr.on("data", () => {}); // Never echo a helper's input or secret-bearing error.
-    child.stdout.on("data", bytes => {
-      output += bytes.toString("utf8");
+    child.stdout.setEncoding("utf8");
+    child.stdout.on("data", chunk => {
+      output += chunk;
       if (output.length > 1024 * 1024) { child.kill(); fail("Invalid Windows security helper response."); }
     });
     child.once("close", status => {

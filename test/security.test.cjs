@@ -13,6 +13,13 @@ const { safePath, validateManifest } = require("../src/backup.cjs");
 const { createTLS } = require("../src/tls.cjs");
 const password = "unit-only-not-a-production-secret";
 
+test("Windows helpers preserve Unicode paths and text in both directions", { skip: process.platform !== "win32" }, async () => {
+  const { windowsJSON } = require("../src/windows.cjs");
+  const value = "বাংলা পথ / 雪 / 😀";
+  const result = await windowsJSON("$payload=[Console]::In.ReadToEnd()|ConvertFrom-Json\n@{value=$payload.value}|ConvertTo-Json -Compress", { value }, "BSONLITE_TEST_HELPER");
+  assert.equal(result.value, value);
+});
+
 test("storage encryption fails closed unless actual encryption is verified", async () => {
   for (const result of [{ verified: false, method: "unverified" }, { verified: true, method: "ntfs" }, { verified: "true", method: "efs" }]) {
     await assert.rejects(verifyStorage("C:\\Database", "required", async () => result, "win32"), error => error.code === "BSONLITE_STORAGE_ENCRYPTION");
