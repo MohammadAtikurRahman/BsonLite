@@ -50,6 +50,15 @@ jobs:
         run: python scripts/enable_windows_utf8.py
       - run: npm ci
       - run: npm test
+      - name: Verify parent-exit cleanup before the full database suites
+        shell: pwsh
+        run: |
+          npm run build:preview
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          $env:BSONLITE_TEST_MODULE = Join-Path $PWD 'dist/BsonLite.cjs'
+          $env:BSONLITE_TEST_BINARY = Join-Path $PWD 'assets/native-win32-x64/mongod.exe'
+          node --test --test-concurrency=1 --test-name-pattern='killing the parent app|starter starts the HTTP' test/integration.test.cjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Test the native engine, DPAPI, encrypted data, migration and actual spill files
         shell: pwsh
         run: |

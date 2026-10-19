@@ -39,6 +39,9 @@ function startSupervisor(options) {
   if (process.versions.electron) env.ELECTRON_RUN_AS_NODE = "1";
   const child = fork(__filename, [SUPERVISOR_FLAG], {
     execArgv: [], windowsHide: true, env: env,
+    // Let Windows IPC-disconnect cleanup finish instead of having libuv's
+    // parent job terminate the supervisor before it can close our engine.
+    detached: process.platform === "win32",
     stdio: ["ignore", "pipe", "pipe", "ipc"]
   });
   let diagnostics = "";
