@@ -9,6 +9,7 @@ const { inspect } = require("node:util");
 const { fork, spawnSync } = require("node:child_process");
 const { pathToFileURL } = require("node:url");
 const { MongoClient } = require("mongodb");
+const { isAlive } = require("../src/util.cjs");
 const modulePath = process.env.BSONLITE_TEST_MODULE || path.resolve(__dirname, "../src/index.cjs");
 const BsonLite = require(modulePath);
 const binary = process.env.BSONLITE_TEST_BINARY;
@@ -199,6 +200,9 @@ test("killing the parent app cleans up the engine and allows safe persistence on
     child.kill("SIGKILL");
     await exited;
     await eventually(function () { return !fs.existsSync(path.join(directory, "instance.lock")); });
+    if (process.platform === "win32") {
+      await eventually(() => !isAlive(info.supervisorPid) && !isAlive(info.enginePid));
+    }
     await eventually(function () {
       return new Promise(function (resolve) {
         const socket = net.connect(info.port, "127.0.0.1");
@@ -365,10 +369,13 @@ test("starter starts the HTTP health server and closes it with the database", pr
     });
     const response=await fetch(url),health=await response.json();assert.equal(response.status,200);assert.equal(health.ok,true);assert.equal(health.database,"bsonlite");assert.equal(health.tls,true);assert.ok(health.databasePort>0);
     assert.equal((await fetch(url.replace('/health','/missing'))).status,404);
+    const owner=JSON.parse(fs.readFileSync(path.join(root,"Database","instance.lock","owner.json"),"utf8"));
     const exited=new Promise(resolve=>child.once("exit",resolve));child.kill("SIGTERM");
     if(process.platform==="win32") {
       // Windows TerminateProcess does not dispatch a POSIX SIGTERM handler.
-      await exited;await eventually(()=>!fs.existsSync(path.join(root,"Database","instance.lock")));
+      // Lock removal precedes supervisor exit by a small interval. Windows
+      // keeps its current directory open until that process actually exits.
+      await exited;await eventually(()=>!fs.existsSync(path.join(root,"Database","instance.lock"))&&!isAlive(owner.supervisorPid)&&!isAlive(owner.enginePid));
     } else {assert.equal(await exited,0);assert.match(output,/\[BsonLite\] Stopped/);}
     assert.equal(fs.existsSync(path.join(root,"Database","instance.lock")),false);
   } finally {if(child&&child.exitCode===null&&child.signalCode===null)child.kill("SIGKILL");fs.rmSync(root,{recursive:true,force:true});fs.rmSync(managed,{recursive:true,force:true});}
