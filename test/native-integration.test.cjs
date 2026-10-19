@@ -1,7 +1,7 @@
 "use strict";
 const test=require("node:test"),assert=require("node:assert/strict"),fs=require("node:fs"),os=require("node:os"),path=require("node:path"),crypto=require("node:crypto");
 const {Long,Int32,Double,BSONRegExp}=require("mongodb");
-const {spawnSync}=require("node:child_process");
+const {spawn,spawnSync}=require("node:child_process");
 // Exercise Unicode in vault/TLS/engine paths as well as the project data path.
 const managed=fs.mkdtempSync(path.join(os.tmpdir(),"bsonlite-managed-পরীক্ষা-"));process.env.BSONLITE_DATA_HOME=managed;
 const B=require(process.env.BSONLITE_TEST_MODULE||"../src/index.cjs");
@@ -62,6 +62,7 @@ test("migration preserves documents, numeric BSON types, text indexes and views"
   const old=metadata(directory);old.formatVersion=2;fs.writeFileSync(path.join(directory,"bsonlite.json"),JSON.stringify(old));
   await assert.rejects(B.open(options(directory)),e=>e.code==="BSONLITE_NATIVE_MIGRATION_REQUIRED");
   const result=await B.migrate({sourceDirectory:directory,directory:destination,binaryPath:binary,nativeManifest:manifest,vaultPassword,storageEncryption:policy});assert.equal(result.originalPreserved,true);
+  const guardBytes=fs.readFileSync(path.join(destination,"migration.json"));const guard=JSON.parse(guardBytes);assert.equal(guard.state,"complete");assert.equal(guard.collectionCount,1);assert.equal(guard.documentCount,1);assert.equal(guard.viewCount,1);assert.ok(guardBytes.length<512);assert.equal(guardBytes.includes(Buffer.from("item_view")),false);
   db=await B.open(options(destination));const saved=await db.collection("items").findOne({_id:id},{promoteValues:false,promoteLongs:false,bsonRegExp:true});assert.equal(saved.n._bsontype,"Int32");assert.equal(saved.floating._bsontype,"Double");assert.equal(saved.big.toString(),"9223372036854775806");assert.equal(saved.rx._bsontype,"BSONRegExp");assert.equal(await db.collection("items").countDocuments({$text:{$search:"offline"}}),1);assert.equal(await db.collection("item_view").countDocuments(),1);await db.close();db=null;
   db=await B.open({...options(directory),storageEncryption:"auto"});assert.equal(await db.collection("items").countDocuments(),1);
  }finally{if(db)await db.close();clean(root);}
@@ -90,4 +91,20 @@ test("rebuilt engine prevents per-collection plaintext encryption overrides",ena
 
 test("final Windows single-file artifact starts without developer binary paths or npm packages",enabled&&!prototype&&process.env.BSONLITE_TEST_MODULE?{timeout:90000}:{skip:"Requires the final embedded Windows artifact."},()=>{
  const root=temp();try{fs.copyFileSync(process.env.BSONLITE_TEST_MODULE,path.join(root,"BsonLite.cjs"));fs.writeFileSync(path.join(root,"app.cjs"),"const B=require('./BsonLite.cjs');(async()=>{const db=await B.connect();try{if(!db.info.security.storageEncryption.verified)throw Error('Native encryption not verified');await B.collection('items').insertOne({n:1});if(await B.collection('items').countDocuments()!==1)throw Error('Missing data');console.log('NATIVE_SINGLE_FILE_OK');}finally{await B.disconnect();}})().catch(e=>{console.error(e.code,e.message);process.exitCode=1;});");const result=spawnSync(process.execPath,["app.cjs"],{cwd:root,env:{...process.env,BSONLITE_DATA_HOME:managed},encoding:"utf8",timeout:85000});assert.equal(result.status,0,result.stderr+result.stdout);assert.match(result.stdout,/NATIVE_SINGLE_FILE_OK/);assert.equal(fs.existsSync(path.join(root,"node_modules")),false);}finally{clean(root);}
+});
+
+test("two standalone consumers safely share a fresh embedded engine cache",enabled&&!prototype&&process.env.BSONLITE_TEST_MODULE?{timeout:120000}:{skip:"Requires the final embedded Windows artifact."},async()=>{
+ const root=temp(),cache=fs.mkdtempSync(path.join(os.tmpdir(),"BsonLite shared private cache পরীক্ষা "));
+ try{
+  fs.copyFileSync(process.env.BSONLITE_TEST_MODULE,path.join(root,"BsonLite.cjs"));
+  fs.writeFileSync(path.join(root,"parallel.cjs"),"const B=require('./BsonLite.cjs');const path=require('node:path');(async()=>{const label=process.argv[2];const db=await B.connect({directory:path.resolve(label),silent:true});try{await db.collection('items').insertOne({label});const records=await db.collection('items').find().toArray();if(records.length!==1||records[0].label!==label)throw Error('Consumer data was mixed');console.log('PARALLEL_NATIVE_OK');}finally{await B.disconnect();}})().catch(e=>{console.error(e.code,e.message);process.exitCode=1;});");
+  const run=label=>new Promise((resolve,reject)=>{
+   const child=spawn(process.execPath,["parallel.cjs",label],{cwd:root,env:{...process.env,BSONLITE_DATA_HOME:cache},stdio:["ignore","pipe","pipe"],windowsHide:true});let output="";
+   const timer=setTimeout(()=>{child.kill("SIGKILL");},100000);
+   child.stdout.setEncoding("utf8");child.stderr.setEncoding("utf8");child.stdout.on("data",s=>{output+=s;});child.stderr.on("data",s=>{output+=s;});
+   child.once("error",error=>{clearTimeout(timer);reject(error);});child.once("close",code=>{clearTimeout(timer);resolve({code,output});});
+  });
+  const results=await Promise.allSettled([run("First"),run("Second")]);for(const result of results){assert.equal(result.status,"fulfilled",result.reason?.message);assert.equal(result.value.code,0,result.value.output);assert.match(result.value.output,/PARALLEL_NATIVE_OK/);}
+  assert.equal(fs.readdirSync(path.join(cache,"engines")).filter(n=>n.startsWith("mongodb-")).length,1);
+ }finally{clean(root);clean(cache);}
 });

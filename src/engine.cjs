@@ -38,7 +38,16 @@ async function resolveEngine(options) {
       if (sha256(bytes) !== embedded.sha256) {
         throw new BsonLiteError("BSONLITE_ENGINE_CHECKSUM", "The embedded MongoDB engine is damaged.");
       }
-      atomicWrite(binaryPath, bytes, 0o755);
+      try { atomicWrite(binaryPath, bytes, 0o755); }
+      catch (error) {
+        // Another app may publish and execute this same cache entry while we
+        // extract it. Windows then refuses replacing the running executable.
+        let published = false;
+        if (["EPERM", "EACCES", "EEXIST", "EBUSY"].includes(error.code)) {
+          try { published = sha256(fs.readFileSync(binaryPath)) === embedded.sha256; } catch (_) {}
+        }
+        if (!published) throw error;
+      }
     }
     if (process.platform !== "win32") fs.chmodSync(binaryPath, 0o700);
     const licenseFolder = path.join(folder, "licenses");

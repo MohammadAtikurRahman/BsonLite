@@ -73,7 +73,20 @@ Push-Location $mongo
 try {
     # SCons 2.5 uses the 14.0 driver interface; the explicit wrapper selects v141.
     # Static CRT + Windows SChannel avoid customer-side crypto/compiler DLLs.
-    Invoke-Checked $python27 @('buildscripts/scons.py','-j2','--release','--opt=on','--dbg=off','--ssl','--ssl-provider=native','--allocator=system','--js-engine=none','--disable-warnings-as-errors','MSVC_VERSION=14.0',('MSVC_USE_SCRIPT=' + $wrapper),'MONGO_VERSION=4.0.28-bsonlite-preview2',('MONGO_GIT_HASH=' + $lock.mongo.commit),'mongod.exe')
+    $sconsArguments = @('buildscripts/scons.py','-j2','--release','--opt=on','--dbg=off','--ssl','--ssl-provider=native','--allocator=system','--js-engine=none','--disable-warnings-as-errors','MSVC_VERSION=14.0',('MSVC_USE_SCRIPT=' + $wrapper),'MONGO_VERSION=4.0.28-bsonlite-preview2',('MONGO_GIT_HASH=' + $lock.mongo.commit))
+    # Compile our changed units first, with the exact final build flags. This
+    # catches old-server API/ABI mistakes before the lengthy untouched engine.
+    $nativeTargets = @(
+        'build/opt/mongo/db/storage/encryption_hooks.obj',
+        'build/opt/mongo/db/storage/wiredtiger/wiredtiger_record_store.obj',
+        'build/opt/mongo/db/storage/wiredtiger/wiredtiger_index.obj',
+        'build/opt/mongo/db/db.obj',
+        'build/opt/mongo/util/net/ssl_manager_windows.obj',
+        'build/opt/mongo/util/exception_filter_win32.obj',
+        'build/opt/third_party/wiredtiger/wiredtiger.lib'
+    )
+    Invoke-Checked $python27 ($sconsArguments + $nativeTargets)
+    Invoke-Checked $python27 ($sconsArguments + @('mongod.exe'))
     $engine = Get-ChildItem (Join-Path $mongo 'build') -Filter 'mongod.exe' -Recurse | Where-Object { $_.Length -gt 1MB } | Select-Object -First 1
     if (-not $engine) { throw 'The rebuilt MongoDB executable was not found.' }
     Copy-Item $engine.FullName (Join-Path $output 'mongod.exe')

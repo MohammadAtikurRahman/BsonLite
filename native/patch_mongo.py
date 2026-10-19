@@ -1,6 +1,7 @@
 """Apply the BsonLite native patch to the exact pinned MongoDB source tree."""
 import argparse
 import hashlib
+import re
 from pathlib import Path
 import shutil
 
@@ -81,7 +82,7 @@ Export('module_sconscripts')""" % str(sodium_library.resolve()))
     replace(mongo, hooks, '    return Status(ErrorCodes::InternalError,\n                  "Encryption hooks must be enabled to use preprocessTmpData.");',
             '    if (bsonlite_encrypt(BSL_TEMP_DOMAIN,in,inLen,out,outLen,resultLen) != 0)\n        return Status(ErrorCodes::OperationFailed,"BsonLite temporary data encryption failed");\n    return Status::OK();')
     replace(mongo, hooks, '    return Status(ErrorCodes::InternalError,\n                  "Encryption hooks must be enabled to use postprocessTmpData.");',
-            '    if (bsonlite_decrypt(BSL_TEMP_DOMAIN,in,inLen,out,outLen,resultLen) != 0)\n        return Status(ErrorCodes::DataCorruption,"BsonLite temporary data authentication failed");\n    return Status::OK();')
+            '    if (bsonlite_decrypt(BSL_TEMP_DOMAIN,in,inLen,out,outLen,resultLen) != 0)\n        return Status(ErrorCodes::OperationFailed,"BsonLite temporary data authentication failed");\n    return Status::OK();')
     for file in ["wiredtiger_record_store.cpp", "wiredtiger_index.cpp"]:
         relative = "src/mongo/db/storage/wiredtiger/" + file
         replace(mongo, relative, '#include "mongo/platform/basic.h"', '#include "mongo/platform/basic.h"\n' + include)
@@ -90,6 +91,13 @@ Export('module_sconscripts')""" % str(sodium_library.resolve()))
         ss << ",encryption=(name=bsonlite_xchacha20_v1,keyid=" << bsonlite_key_id() << ")";
     }
     return StatusWith<std::string>(ss);""")
+    # Old server branches do not expose every error name from modern MongoDB.
+    known_codes = set(re.findall(r'error_code\("(\w+)"',
+                                (mongo / "src/mongo/base/error_codes.err").read_text()))
+    used_codes = set(re.findall(r'\bErrorCodes::(\w+)', (mongo / hooks).read_text()))
+    if used_codes - known_codes:
+        raise RuntimeError("Native hooks reference unavailable server error codes: " +
+                           ", ".join(sorted(used_codes - known_codes)))
     # Include the patching logic as well as its copied implementation. Otherwise
     # a changed table/temp-hook patch would retain the same provenance digest.
     digest = hashlib.sha256()

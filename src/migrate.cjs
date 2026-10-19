@@ -55,7 +55,11 @@ async function migrate(input,open){
     let views=collections.filter(x=>x.type==="view");
     while(views.length){let progress=false;const pending=[];for(const view of views){try{await target.createCollection(view.name,view.options);progress=true;}catch(error){if(error.code===26)pending.push(view);else throw error;}}
       if(!progress)throw new BsonLiteError("BSONLITE_MIGRATION_SCOPE","Dependent views could not be recreated.");views=pending;}
-    atomicWrite(guard,JSON.stringify({version:1,state:"complete",completedAt:new Date().toISOString(),collections:copied},null,2));
+    // The startup guard is bounded public metadata; keep collection names and
+    // potentially very large per-collection reports in the returned result.
+    atomicWrite(guard,JSON.stringify({version:1,state:"complete",completedAt:new Date().toISOString(),
+      collectionCount:copied.length,documentCount:copied.reduce((total,item)=>total+item.documents,0),
+      viewCount:collections.filter(item=>item.type==="view").length},null,2));
     return Object.freeze({directory,sourceDirectory,databaseName:metadata.databaseName,collections:copied,originalPreserved:true,security:target.info.security.storageEncryption});
   }finally{
     try{if(target)await target.close();}finally{if(source)await source.close();}

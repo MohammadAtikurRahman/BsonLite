@@ -2,6 +2,8 @@
 
 Development preview. No independent security audit or native Windows validation is claimed until the CI workflow actually succeeds.
 
+MongoDB 4.0.28 is retained for the requested older-engine compatibility. MongoDB lists the 4.0 server line as end-of-life on April 30, 2022: https://www.mongodb.com/legal/support-policy/lifecycles. This custom encryption layer does not supply upstream server security maintenance. Loopback/mTLS limits exposure but does not replace that maintenance.
+
 ## Storage design
 
 - WiredTiger encryptor: libsodium 1.0.22, XChaCha20-Poly1305, random 192-bit nonce for every encrypted block, 256-bit per-store random key, 128-bit authentication tag. Format is magic `BSLAE001` + 24-byte nonce + ciphertext + tag, 48-byte overhead.
