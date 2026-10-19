@@ -36,11 +36,12 @@ if (-not (Test-Path $vswhere)) { throw 'Install Visual Studio Build Tools with t
 $vs = (& $vswhere -latest -products '*' -property installationPath | Select-Object -First 1)
 if (-not $vs) { throw 'Visual Studio Build Tools was not found.' }
 $tools = @(Get-ChildItem (Join-Path $vs 'VC/Tools/MSVC') -Directory -Filter '14.16.*' -ErrorAction SilentlyContinue)
+$atl = @($tools | Where-Object { Test-Path (Join-Path $_.FullName 'atlmfc/include/atlbase.h') })
 $sdk = Join-Path ${env:ProgramFiles(x86)} 'Windows Kits/10/Include/10.0.19041.0'
-if (-not $tools.Count -or -not (Test-Path $sdk)) {
-    if (-not $InstallBuildTools) { throw 'The builder needs the v141 x64 toolset and Windows SDK 10.0.19041.0. CI passes -InstallBuildTools; customer apps do not install these.' }
+if (-not $tools.Count -or -not $atl.Count -or -not (Test-Path $sdk)) {
+    if (-not $InstallBuildTools) { throw 'The builder needs the v141 x64 toolset, its matching ATL headers and Windows SDK 10.0.19041.0. CI passes -InstallBuildTools; customer apps do not install these.' }
     $installer = Join-Path ${env:ProgramFiles(x86)} 'Microsoft Visual Studio/Installer/vs_installer.exe'
-    $installArgs = @('modify', '--installPath', ('"' + $vs + '"'), '--add', 'Microsoft.VisualStudio.Component.VC.v141.x86.x64', '--add', 'Microsoft.VisualStudio.Component.Windows10SDK.19041', '--quiet', '--norestart', '--nocache')
+    $installArgs = @('modify', '--installPath', ('"' + $vs + '"'), '--add', 'Microsoft.VisualStudio.Component.VC.v141.x86.x64', '--add', 'Microsoft.VisualStudio.Component.VC.v141.ATL', '--add', 'Microsoft.VisualStudio.Component.Windows10SDK.19041', '--quiet', '--norestart', '--nocache')
     $installation = Start-Process -FilePath $installer -ArgumentList $installArgs -Wait -PassThru
     if ($installation.ExitCode -notin @(0,3010)) { throw "Build tool installation failed: $($installation.ExitCode)" }
 }
@@ -79,7 +80,7 @@ try {
 } finally { Pop-Location }
 Invoke-Checked (Join-Path $output 'mongod.exe') @('--bsonlite-native-self-test')
 $imports = & 'dumpbin.exe' '/DEPENDENTS' (Join-Path $output 'mongod.exe')
-if ($LASTEXITCODE -ne 0 -or ($imports -match '(?i)(MSVCP[0-9]+|VCRUNTIME[0-9]+|libsodium|libcrypto|libssl)\.dll')) {
+if ($LASTEXITCODE -ne 0 -or ($imports -match '(?i)\b(?:(?:MSVCP|MSVCR|VCRUNTIME|atl|mfc)\d\w*|libsodium|libcrypto[\w-]*|libssl[\w-]*|ucrtbase)\.dll|\bapi-ms-win-crt-[\w-]+\.dll')) {
     throw 'The engine has an unexpected external runtime dependency. Do not publish it.'
 }
 $importedFunctions = & 'dumpbin.exe' '/IMPORTS' (Join-Path $output 'mongod.exe')

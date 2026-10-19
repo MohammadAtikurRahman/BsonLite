@@ -12,7 +12,7 @@ A new workflow may need the repository owner's Actions approval or the connected
 
 ## Developer Windows build
 
-Use Windows x64, PowerShell 7, Python 3.12, Node.js 20+, Visual Studio Build Tools with v141 and Windows SDK 10.0.19041.0. Python 2.7.18 is downloaded privately as a verified build-only NuGet package. With `-InstallBuildTools`, the builder also installs the pinned Microsoft VC90 runtime on the build host after SHA-256 and Authenticode verification. That installer URL is taken from Microsoft's official [redistributable downloads](https://learn.microsoft.com/en-us/cpp/windows/latest-supported-vc-redist/). No Python/compilers or VC90 installer are delivered in the customer SDK. The Windows installation path remains untested until CI runs.
+Use Windows x64, PowerShell 7, Python 3.12, Node.js 20+, Visual Studio Build Tools with v141, its matching ATL headers and Windows SDK 10.0.19041.0. Python 2.7.18 is downloaded privately as a verified build-only NuGet package. With `-InstallBuildTools`, the builder also installs the pinned Microsoft VC90 runtime on the build host after SHA-256 and Authenticode verification. That installer URL is taken from Microsoft's official [redistributable downloads](https://learn.microsoft.com/en-us/cpp/windows/latest-supported-vc-redist/). No Python/compilers or VC90 installer are delivered in the customer SDK. The installer, compiler configuration and Windows crypto probe have run in CI; full engine validation remains pending.
 
 ```powershell
 ./native/build_windows.ps1 -InstallBuildTools
