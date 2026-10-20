@@ -190,3 +190,8 @@ module.exports = Object.freeze({
 if (require.main === module && process.argv[2] === SUPERVISOR_FLAG) {
   require("./supervisor.cjs").run();
 }
+
+// Automatic local Console support is initialized only in the owning app.
+if (!(require.main === module && process.argv[2] === SUPERVISOR_FLAG)) {
+  module.exports = require("./console-addon.cjs")(module.exports);
+}

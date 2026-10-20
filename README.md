@@ -83,3 +83,11 @@ npm run test:packaging
 `npm run build` requires the matching custom engine and successful Windows integration validation. The source preview intentionally has no embedded engine.
 
 Read `SECURITY.md` and `licenses/SOURCE_AND_NOTICES.md` before distribution. MongoDB 4.0.28 is end-of-life; this encryption layer does not supply upstream server maintenance. The SDK does not promise anti-rollback protection or confidentiality against compromised runtimes, same-account malware, administrators, pagefiles, hibernation or OS crash dumps. Plan encrypted backups before distributing an offline product.
+
+## Automatic BsonLite Console connections
+
+After updating the SDK, keep your existing `BsonLite.connect(...)` code. BsonLite Console 0.2.0 discovers the running local database, fills its URL, and opens it when you click Connect. Multiple apps appear in a dropdown. No separate helper package or project-folder selection is required.
+
+The optional adapter starts only after database connection and uses a private current-account registry and a token-protected HTTP endpoint on 127.0.0.1. The native encrypted engine and its mutual TLS connection are unchanged. Stop the SDK normally to remove the session. Set `console: false` in initial connection options or `BSONLITE_CONSOLE=0` to opt out. A running shared connection rejects conflicting Console options until it is stopped.
+
+The adapter source is bundled in `src/console-addon.cjs`; its Acorn dependency license is included. The standalone SDK combines the preserved native distribution with this adapter. npm distribution rc.3 loads the preserved core via its adapter entry point. New discovery, live-driver/TLS and Electron workflow tests pass on Linux. Windows runtime verification of automatic discovery is pending. See `CONSOLE_BN.md`.
