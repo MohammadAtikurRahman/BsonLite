@@ -9,7 +9,7 @@ permissions:
   contents: read
 concurrency:
   group: modern-engine-${{ github.ref }}
-  cancel-in-progress: true
+  cancel-in-progress: false
 jobs:
   source:
     runs-on: ubuntu-24.04
@@ -69,14 +69,34 @@ jobs:
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
         with: {node-version: '24', package-manager-cache: false}
       - uses: actions/cache/restore@caa296126883cff596d87d8935842f9db880ef25
+        id: engine-cache
+        with:
+          path: |
+            assets/modern-win32-x64/
+            native/build/modern/BsonLite-modern-engine-source.tar.gz
+            licenses/modern/
+          key: modern-native-v143-static-v1-${{ hashFiles('native/modern/deps.lock.json', 'native/modern/patch_mongo.py', 'native/modern/hooks.inc', 'native/modern/build_windows.ps1', 'native/modern/enable_utf8.py', 'native/modern/package_source.py', 'native/src/**', 'scripts/enable_windows_utf8.py') }}
+      - uses: actions/cache/restore@caa296126883cff596d87d8935842f9db880ef25
         id: native-cache
+        if: steps.engine-cache.outputs.cache-hit != 'true'
         with:
           path: native/build/modern/bazel-cache
           key: modern-win2022-v143-static-v1-${{ github.sha }}-${{ github.run_attempt }}
           restore-keys: modern-win2022-v143-static-v1-
       - name: Build the pinned SSPL source and encrypted engine
+        if: steps.engine-cache.outputs.cache-hit != 'true'
         shell: pwsh
         run: ./native/modern/build_windows.ps1
+      - name: Preserve the compiled engine before runtime and packaging tests
+        if: steps.engine-cache.outputs.cache-hit != 'true'
+        continue-on-error: true
+        uses: actions/cache/save@caa296126883cff596d87d8935842f9db880ef25
+        with:
+          path: |
+            assets/modern-win32-x64/
+            native/build/modern/BsonLite-modern-engine-source.tar.gz
+            licenses/modern/
+          key: modern-native-v143-static-v1-${{ hashFiles('native/modern/deps.lock.json', 'native/modern/patch_mongo.py', 'native/modern/hooks.inc', 'native/modern/build_windows.ps1', 'native/modern/enable_utf8.py', 'native/modern/package_source.py', 'native/src/**', 'scripts/enable_windows_utf8.py') }}
       - run: npm ci
       - run: npm run build:modern:preview
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
@@ -125,6 +145,42 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           python native/modern/validate_release.py --phase final --source native/build/modern/source-native.xml --runtime native/build/modern/runtime.xml --final native/build/modern/final-native.xml
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          repository: MohammadAtikurRahman/Bsonlite-SDK
+          ref: e0f80f1b926ca80745ac49a30506f5a24c6ca762
+          path: native/build/npm-packager
+          persist-credentials: false
+      - name: Prepare, verify and install the actual experimental npm package
+        shell: pwsh
+        run: |
+          $package = Join-Path $env:RUNNER_TEMP 'bsonlite-modern-npm'
+          $packed = Join-Path $PWD 'native/build/modern/npm'
+          $consumer = Join-Path $env:RUNNER_TEMP 'bsonlite-modern-npm-consumer'
+          node native/build/npm-packager/scripts/prepare-modern.cjs --artifact $PWD --out $package --commit $env:GITHUB_SHA --run-id $env:GITHUB_RUN_ID
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          New-Item -ItemType Directory -Force $packed | Out-Null
+          Push-Location $package
+          try {
+            npm test
+            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+            npm pack --pack-destination $packed
+            if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          } finally { Pop-Location }
+          $tarball = Join-Path $packed 'bsonlite-sdk-0.7.0-alpha.0.tgz'
+          npm install --prefix $consumer --ignore-scripts --no-audit --no-fund $tarball
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          node (Join-Path $consumer 'node_modules/bsonlite-sdk/scripts/verify-modern.cjs')
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          Copy-Item (Join-Path $package 'validation.json') $packed
+          Copy-Item (Join-Path $package 'MODERN_VALIDATION.md') $packed
+          ((Get-FileHash $tarball -Algorithm SHA256).Hash.ToLowerInvariant() + '  ' + (Split-Path $tarball -Leaf)) | Set-Content (Join-Path $packed 'SHA256SUMS.txt') -Encoding utf8NoBOM
+      - name: Upload the prepared npm prerelease without publishing
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: BsonLite-modern-npm-${{ github.sha }}
+          if-no-files-found: error
+          path: native/build/modern/npm/
       - name: Upload experimental evidence and matching source
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         with:
@@ -138,7 +194,8 @@ jobs:
             licenses/modern-sdk/
             native/build/modern/*.xml
       - name: Preserve successful compiler actions for the next build attempt
-        if: always() && steps.native-cache.outputs.cache-hit != 'true'
+        if: always() && steps.engine-cache.outputs.cache-hit != 'true' && steps.native-cache.outputs.cache-hit != 'true'
+        continue-on-error: true
         uses: actions/cache/save@caa296126883cff596d87d8935842f9db880ef25
         with:
           path: native/build/modern/bazel-cache

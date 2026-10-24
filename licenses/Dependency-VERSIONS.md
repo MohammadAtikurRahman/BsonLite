@@ -1,7 +1,8 @@
 # Bundled dependency versions
 
-Generated from package-lock.json. Original license/copyright texts accompany this file.
+Generated from package-lock.json and the embedded Console parser. Original license/copyright texts accompany this file.
 
+- acorn 8.19.0 — "MIT"
 - @mongodb-js/saslprep 1.6.1 — "MIT"
 - @peculiar/asn1-asym-key 2.11.0 — "MIT"
 - @peculiar/asn1-cms 2.11.0 — "MIT"

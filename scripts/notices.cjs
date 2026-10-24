@@ -25,13 +25,19 @@ function collectNotices(root, options = {}) {
       }
     }
     visit(path.join(root, "node_modules/mongodb-modern"));
+    const common = JSON.parse(fs.readFileSync(path.join(root, "package.json"), "utf8"));
+    for (const name of Object.keys(common.dependencies || {})) {
+      if (name !== "mongodb") visit(path.join(root, "node_modules", name));
+    }
   }
-  const manifest = [];
+  const embeddedParserNotice = "Dependency-acorn-8.19.0-LICENSE.txt";
+  if (options.modern) fs.copyFileSync(path.join(root, "licenses", embeddedParserNotice), path.join(folder, embeddedParserNotice));
+  const manifest = [{ name: "acorn", version: "8.19.0", license: "MIT" }];
   for (const [relative, entry] of Object.entries(lock.packages)) {
     if (!relative) continue;
     const source = path.join(root, relative);
-    if (entry.dev && !modernDependencies.has(path.resolve(source))) continue;
     if (!fs.existsSync(path.join(source, "package.json"))) continue;
+    if (options.modern ? !modernDependencies.has(fs.realpathSync(source)) : entry.dev) continue;
     const pkg = JSON.parse(fs.readFileSync(path.join(source, "package.json"), "utf8"));
     const names = fs.readdirSync(source).filter(name => /^(licen[sc]e|copying|copyright|notice)/i.test(name) && fs.statSync(path.join(source, name)).isFile());
     if (!names.some(name => /^(licen[sc]e|copying)/i.test(name))) throw new Error("A dependency license is missing: " + pkg.name);
@@ -39,7 +45,7 @@ function collectNotices(root, options = {}) {
     for (const name of names) fs.copyFileSync(path.join(source, name), path.join(folder, "Dependency-" + prefix + "-" + name.replace(/[^a-zA-Z0-9_.-]/g, "_") + ".txt"));
     manifest.push({ name: pkg.name, version: pkg.version, license: pkg.license || "See notice", source: pkg.repository || pkg.homepage || "See installed npm package" });
   }
-  fs.writeFileSync(path.join(folder, "Dependency-VERSIONS.md"), "# Bundled dependency versions\n\nGenerated from package-lock.json. Original license/copyright texts accompany this file.\n\n" + manifest.map(pkg => "- " + pkg.name + " " + pkg.version + " — " + JSON.stringify(pkg.license)).join("\n") + "\n");
+  fs.writeFileSync(path.join(folder, "Dependency-VERSIONS.md"), "# Bundled dependency versions\n\nGenerated from package-lock.json and the embedded Console parser. Original license/copyright texts accompany this file.\n\n" + manifest.map(pkg => "- " + pkg.name + " " + pkg.version + " — " + JSON.stringify(pkg.license)).join("\n") + "\n");
   return folder;
 }
 module.exports = { collectNotices };

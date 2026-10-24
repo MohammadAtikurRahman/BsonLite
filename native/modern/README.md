@@ -4,6 +4,8 @@ This is an experimental build path. The published 0.6 SDK and existing
 MongoDB 4.0.28 stores are unchanged. No 9.0 customer artifact is validated merely
 by applying the source patch or importing the source preview.
 
+[বাংলায় ব্যবহার ও পুরোনো database upgrade](UPGRADE_BN.md)
+
 ## Pinned inputs
 
 - MongoDB r9.0.4, commit `246de92935f8636f4f90889d418b31ae70dbaafd`.
@@ -44,6 +46,13 @@ tests. A second gate requires the final embedded SDK and isolated concurrent
 consumers. Do not edit validation flags to bypass either gate. The experimental
 workflow uploads the customer artifact only after both gates pass. It does not
 publish an npm version or a GitHub Release.
+
+After final native validation, the workflow uses the pinned Bsonlite-SDK
+preparation script to produce, pack, install and verify the actual npm
+prerelease. Its separate `BsonLite-modern-npm-<commit>` artifact contains the
+tarball, validation record and checksum. Publishing that tarball is a separate
+maintainer action; its default tag is `next`. Matching engine source and the
+integrated Console adapter are included in the package.
 
 ## Source review without the engine
 
