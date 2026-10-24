@@ -5,6 +5,8 @@ const net = require("node:net");
 const crypto = require("node:crypto");
 const { spawn } = require("node:child_process");
 const { MongoClient } = require("mongodb");
+const { ENGINE_VERSION } = require("./constants.cjs");
+const { startupArguments } = require("./engine-profiles.cjs");
 const { acquireLock } = require("./lock.cjs");
 const { resolveEngine } = require("./engine.cjs");
 const { protectDirectory } = require("./permissions.cjs");
@@ -225,20 +227,8 @@ function run() {
     for (let attempt = 0; attempt < 3; attempt++) {
       port = await freePort();
       checkClosing();
-      const argumentsForEngine = [
-        "--dbpath", path.join(options.directory, "data"),
-        "--port", String(port), "--bind_ip", "127.0.0.1",
-        "--sslMode", "requireSSL", "--sslPEMKeyFile", tls.serverFile, "--sslCAFile", tls.caFile,
-        "--sslDisabledProtocols", "TLS1_0,TLS1_1",
-        "--auth", "--storageEngine", "wiredTiger",
-        "--noscripting", "--profile", "0", "--slowOpSampleRate", "0",
-        "--setParameter", "authenticationMechanisms=SCRAM-SHA-256",
-        "--wiredTigerCacheSizeGB", String(options.cacheSizeGB),
-        "--setParameter", "diagnosticDataCollectionEnabled=false",
-        "--enableFreeMonitoring", "off"
-      ];
+      const argumentsForEngine = startupArguments({ ...options, port }, tls, ENGINE_VERSION);
       if(useNative)argumentsForEngine.push("--wiredTigerEngineConfigString",nativeConfig);
-      if (process.platform !== "win32") argumentsForEngine.push("--nounixsocket");
       const engineEnv = { ...process.env };
       delete engineEnv.BSONLITE_VAULT_PASSWORD;
       delete engineEnv.BSONLITE_BACKUP_PASSWORD;

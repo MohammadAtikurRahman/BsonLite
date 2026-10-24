@@ -17,7 +17,11 @@
     "test:native-integration": "node --test --test-concurrency=1 test/native-integration.test.cjs",
     "test:packaging": "node --test test/packaging.test.cjs",
     "test:integration": "node --test --test-concurrency=1 test/integration.test.cjs",
-    "unlock": "node scripts/unlock.cjs"
+    "unlock": "node scripts/unlock.cjs",
+    "build:modern": "node scripts/build.cjs --engine-profile=modern",
+    "build:modern:preview": "node scripts/build.cjs --engine-profile=modern --preview-source",
+    "test:modern": "node --test test/modern.test.cjs",
+    "test:modern-integration": "node --test --test-concurrency=1 test/modern-integration.test.cjs"
   },
   "dependencies": {
     "@peculiar/x509": "2.2.0",
@@ -25,7 +29,8 @@
     "reflect-metadata": "0.2.2"
   },
   "devDependencies": {
-    "esbuild": "0.25.5"
+    "esbuild": "0.25.5",
+    "mongodb-modern": "npm:mongodb@7.7.0"
   },
   "license": "MIT"
 }

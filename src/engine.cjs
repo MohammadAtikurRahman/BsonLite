@@ -8,6 +8,7 @@ const embedded = require("./payload.cjs");
 const { atomicWrite, sha256 } = require("./util.cjs");
 const { BsonLiteError } = require("./errors.cjs");
 const { ENGINE_VERSION } = require("./constants.cjs");
+const { profileFor } = require("./engine-profiles.cjs");
 const { storagePaths } = require("./paths.cjs");
 const { protectDirectory } = require("./permissions.cjs");
 const { prepareManagedRoot } = require("./managed.cjs");
@@ -25,9 +26,12 @@ async function resolveEngine(options) {
         "This file contains MongoDB for " + embedded.platform + "/" + embedded.arch +
         ". Your runtime is " + process.platform + "/" + process.arch + ".");
     }
-    if (process.platform === "win32" && Number(require("node:os").release().split(".")[2]) < 18362) {
+    if (embedded.version !== ENGINE_VERSION) {
+      throw new BsonLiteError("BSONLITE_ENGINE_VERSION", "The embedded engine does not match this SDK's pinned profile.");
+    }
+    if (process.platform === "win32" && Number(require("node:os").release().split(".")[2]) < profileFor(ENGINE_VERSION).minimumWindowsBuild) {
       throw new BsonLiteError("BSONLITE_UNSUPPORTED_WINDOWS",
-        "This SDK requires Windows 10 version 1903 or later, Windows 11, or a compatible Windows Server release for Unicode file paths.");
+        "This engine requires Windows build " + profileFor(ENGINE_VERSION).minimumWindowsBuild + " or later. Check the engine profile's supported Windows editions.");
     }
     const folder = path.join(await prepareManagedRoot(), "engines",
       "mongodb-" + embedded.version + "-" + embedded.platform + "-" + embedded.arch + "-" + embedded.sha256.slice(0, 12));

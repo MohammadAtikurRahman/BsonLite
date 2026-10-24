@@ -1,0 +1,60 @@
+name: Experimental MongoDB 9 encrypted engine
+on:
+  workflow_dispatch:
+  push:
+    branches: [upgrade/mongodb-9.0]
+  pull_request:
+    paths: ['native/modern/**', 'src/**', 'scripts/**', 'test/modern*', '.github/workflows/modern-engine.yml']
+permissions:
+  contents: read
+concurrency:
+  group: modern-engine-${{ github.ref }}
+  cancel-in-progress: false
+jobs:
+  source:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with: {persist-credentials: false}
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+        with: {node-version: '24', package-manager-cache: false}
+      - run: npm ci
+      - run: npm test
+      - run: npm run build:modern:preview
+      - run: npm run test:modern
+  windows:
+    needs: source
+    runs-on: windows-2022
+    timeout-minutes: 350
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with: {persist-credentials: false}
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1
+        with: {python-version: '3.13'}
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
+        with: {node-version: '24', package-manager-cache: false}
+      - name: Build the pinned SSPL source and encrypted engine
+        shell: pwsh
+        run: ./native/modern/build_windows.ps1
+      - run: npm ci
+      - run: npm run build:modern:preview
+      - name: Test real encrypted storage, TLS, BSON and restart
+        shell: pwsh
+        run: |
+          $env:BSONLITE_MODERN_BINARY = Join-Path $PWD 'assets/modern-win32-x64/mongod.exe'
+          $env:BSONLITE_MODERN_MANIFEST = Join-Path $PWD 'assets/modern-win32-x64/native-engine.json'
+          npm run test:modern-integration
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Upload experimental evidence and matching source
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: BsonLite-modern-experimental-${{ github.sha }}
+          if-no-files-found: error
+          path: |
+            assets/modern-win32-x64/
+            native/build/modern/BsonLite-modern-engine-source.tar.gz
+            licenses/modern/
+            dist-modern/build-info.json
+# No npm publishing, automatic release, or 'windowsIntegration=passed' flag.
+# Full spill/recovery/migration and final-bundle validation gate promotion.

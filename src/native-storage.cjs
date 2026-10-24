@@ -5,6 +5,8 @@ const crypto = require("node:crypto");
 const { execFile } = require("node:child_process");
 const { promisify } = require("node:util");
 const { BsonLiteError } = require("./errors.cjs");
+const { ENGINE_VERSION } = require("./constants.cjs");
+const { profileFor } = require("./engine-profiles.cjs");
 const exec = promisify(execFile);
 const CIPHER = "xchacha20-poly1305";
 const ENCRYPTOR = "bsonlite_xchacha20_v1";
@@ -28,15 +30,15 @@ function readBoundedJSON(file) {
   return JSON.parse(fs.readFileSync(file,"utf8"));
 }
 function digest(file) { return crypto.createHash("sha256").update(fs.readFileSync(file)).digest("hex"); }
-async function resolveNative(binary, options) {
+async function resolveNative(binary, options, expectedProfile = profileFor(ENGINE_VERSION)) {
   if (!nativePolicy(options.storageEncryption)) return null;
   const manifestPath = options.nativeManifest || path.join(path.dirname(binary),"native-engine.json");
   let manifest;
   try { manifest = readBoundedJSON(manifestPath); } catch (_) {
     throw new BsonLiteError("BSONLITE_NATIVE_BUILD_REQUIRED", "This preview requires the BsonLite encrypted engine. Build it using the Windows native workflow. The original MongoDB engine cannot provide native encryption; no plaintext database was started.");
   }
-  if (!manifest || manifest.version !== 1 || manifest.cipher !== CIPHER || manifest.platform !== process.platform ||
-      manifest.arch !== process.arch || manifest.engineVersion !== "4.0.28" || !/^[a-f0-9]{64}$/.test(manifest.engineSha256) ||
+  if (!manifest || manifest.version !== expectedProfile.manifestVersion || manifest.cipher !== CIPHER || manifest.platform !== process.platform ||
+      manifest.arch !== process.arch || manifest.engineVersion !== expectedProfile.version || !/^[a-f0-9]{64}$/.test(manifest.engineSha256) ||
       digest(binary) !== manifest.engineSha256 || manifest.libsodiumVersion !== "1.0.22") {
     throw new BsonLiteError("BSONLITE_NATIVE_ENGINE_INVALID", "The encrypted-engine manifest does not match this engine, OS, architecture or cipher version.");
   }
@@ -56,6 +58,13 @@ async function resolveNative(binary, options) {
     throw new BsonLiteError("BSONLITE_NATIVE_BUILD_REQUIRED", "Full native encryption requires the rebuilt engine with encrypted temporary files and disabled engine memory dumps. A Linux extension prototype cannot be substituted.");
   }
   const protocol=manifest.selfTestProtocol||"json-v1";
+  if (expectedProfile.id === "modern" && (manifest.upstreamCommit !== expectedProfile.upstreamCommit ||
+      protocol !== "json-v1" || manifest.mode !== "builtin" ||
+      !/^[a-f0-9]{64}$/.test(manifest.patchSha256) || manifest.staticCRuntime !== true ||
+      manifest.tlsProvider !== "Windows SChannel" || manifest.windowsCodePage !== "UTF-8" ||
+      manifest.minimumWindowsBuild !== expectedProfile.minimumWindowsBuild || process.platform !== "win32")) {
+    throw new BsonLiteError("BSONLITE_NATIVE_ENGINE_INVALID", "The modern engine does not match its pinned encrypted Windows build profile.");
+  }
   if(!["json-v1","win32-exit-code-v1"].includes(protocol) ||
     (protocol==="win32-exit-code-v1" && (process.platform!=="win32" || manifest.mode!=="builtin" ||
       manifest.upstreamCommit!=="af1a9dc12adcfa83cc19571cb3faba26eeddac92" || !/^[a-f0-9]{64}$/.test(manifest.patchSha256) ||
@@ -76,6 +85,9 @@ async function resolveNative(binary, options) {
   if (protocol==="json-v1" && (!result || result.bsonliteNativeEncryption !== 1 || result.cipher !== CIPHER || result.selfTest !== true ||
       (!extension && (result.temporaryFiles !== true || result.libsodium !== "1.0.22")))) {
     throw new BsonLiteError("BSONLITE_NATIVE_SELF_TEST", "The native engine returned incompatible encryption capabilities.");
+  }
+  if (expectedProfile.id === "modern" && result.engineVersion !== expectedProfile.version) {
+    throw new BsonLiteError("BSONLITE_NATIVE_SELF_TEST", "The encrypted engine self-test reported another engine version.");
   }
   return Object.freeze({ extension, coverage:extension ? "wiredtiger-prototype" : "full" });
 }

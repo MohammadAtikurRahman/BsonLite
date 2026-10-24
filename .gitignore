@@ -1,5 +1,9 @@
 node_modules/
 dist/
+dist-modern/
+assets/modern-win32-x64/
+licenses/modern/
+licenses/modern-sdk/
 Database/
 DatabaseEncrypted/
 native/build/

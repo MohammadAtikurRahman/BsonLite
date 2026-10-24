@@ -1,0 +1,15 @@
+{
+  "mongo": {
+    "version": "9.0.4",
+    "tag": "r9.0.4",
+    "commit": "246de92935f8636f4f90889d418b31ae70dbaafd",
+    "url": "https://codeload.github.com/mongodb/mongo/tar.gz/246de92935f8636f4f90889d418b31ae70dbaafd",
+    "sha256": "65e45d4dfeea9a98c0655eeb9b3b6e6845b51c3cdac008f1f664a42941695fe6",
+    "wiredTigerVersion": "12.0.0"
+  },
+  "sodium": {
+    "version": "1.0.22",
+    "url": "https://github.com/jedisct1/libsodium/releases/download/1.0.22-RELEASE/libsodium-1.0.22.tar.gz",
+    "sha256": "adbdd8f16149e81ac6078a03aca6fc03b592b89ef7b5ed83841c086191be3349"
+  }
+}
