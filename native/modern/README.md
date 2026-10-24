@@ -72,6 +72,11 @@ This generates `dist-modern/BsonLite.cjs` with the new driver and API, but no
 native engine. A source preview cannot create an encrypted customer database.
 Normal `npm run build` still selects the legacy profile.
 
+The modern engine requires native encryption. Its `auto` and `required` SDK
+policies select full native encryption; `none` and partial prototypes are
+rejected before a store is created. Legacy administration policies retain
+their existing behavior in the 4.0 SDK.
+
 ## Release gates
 
 Promotion requires full Windows data, journal and temporary-spill checks,

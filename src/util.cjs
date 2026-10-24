@@ -5,6 +5,8 @@ const crypto = require("node:crypto");
 const { fileURLToPath } = require("node:url");
 const { BsonLiteError } = require("./errors.cjs");
 const { storagePaths } = require("./paths.cjs");
+const { ENGINE_VERSION } = require("./constants.cjs");
+const { profileFor } = require("./engine-profiles.cjs");
 
 function numberOption(value, fallback, min, max, name) {
   const result = value === undefined ? fallback : value;
@@ -63,9 +65,14 @@ function normalizeOptions(options) {
   if (options.silent !== undefined && typeof options.silent !== "boolean") {
     throw new BsonLiteError("BSONLITE_INVALID_OPTIONS", "silent must be true or false.");
   }
-  const storageEncryption = options.storageEncryption === undefined ? "native" : options.storageEncryption;
+  let storageEncryption = options.storageEncryption === undefined ? "native" : options.storageEncryption;
   if (!["native", "native-prototype", "auto", "required", "none"].includes(storageEncryption)) {
     throw new BsonLiteError("BSONLITE_INVALID_OPTIONS", "storageEncryption must be 'native', 'native-prototype', 'auto', 'required' or 'none'.");
+  }
+  if (profileFor(ENGINE_VERSION).id === "modern") {
+    if (storageEncryption === "auto" || storageEncryption === "required") storageEncryption = "native";
+    if (storageEncryption === "none") throw new BsonLiteError("BSONLITE_SECURITY_DOWNGRADE", "The modern engine requires native encryption. A plaintext store was not created.");
+    if (storageEncryption === "native-prototype") throw new BsonLiteError("BSONLITE_NATIVE_BUILD_REQUIRED", "The modern SDK requires the full encrypted Windows engine; a partial prototype cannot be used.");
   }
   if(options.nativeManifest!==undefined&&(typeof options.nativeManifest!=="string"||!options.nativeManifest.trim()))throw new BsonLiteError("BSONLITE_INVALID_OPTIONS","nativeManifest must be a non-empty developer manifest path.");
   const vaultPassword = options.vaultPassword === undefined ? process.env.BSONLITE_VAULT_PASSWORD : options.vaultPassword;

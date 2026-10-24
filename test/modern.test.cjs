@@ -3,6 +3,7 @@ const test = require("node:test"), assert = require("node:assert/strict");
 const { profiles, profileFor, startupArguments } = require("../src/engine-profiles.cjs");
 const { spawnSync } = require("node:child_process");
 const path = require("node:path"), fs = require("node:fs");
+const os = require("node:os");
 
 test("engine profiles retain the legacy release and reject unpinned versions", () => {
   assert.equal(profileFor("4.0.28").driverVersion, "6.16.0");
@@ -40,4 +41,15 @@ test("modern source preview exposes the new driver, imports inertly and refuses 
   assert.equal(info.experimental, true);
   assert.equal(info.nativeReady, false);
   await assert.rejects(require("../src/engine.cjs").resolveEngine({}), e => e.code === "BSONLITE_ENGINE_NOT_EMBEDDED");
+});
+
+test("modern SDK refuses plaintext and partial encryption before creating a store", async t => {
+  const sdk = require(path.resolve(__dirname, "../dist-modern/BsonLite.cjs"));
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "bsonlite-modern-policy-"));
+  t.after(() => fs.rmSync(root, { recursive: true, force: true }));
+  for (const [storageEncryption, code] of [["none", "BSONLITE_SECURITY_DOWNGRADE"], ["native-prototype", "BSONLITE_NATIVE_BUILD_REQUIRED"]]) {
+    const directory = path.join(root, storageEncryption);
+    await assert.rejects(sdk.open({ directory, storageEncryption }), error => error.code === code);
+    assert.equal(fs.existsSync(directory), false);
+  }
 });

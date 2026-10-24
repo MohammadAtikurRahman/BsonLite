@@ -39,7 +39,7 @@ test("modern encrypted engine preserves BSON, indexes, aggregation and records a
   const BsonLite = require(modulePath);
   assert.equal(BsonLite.engineVersion, "9.0.4");
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "bsonlite-modern-live-"));
-  const options = { directory: path.join(root, "Database"), name: "modern", binaryPath, nativeManifest, silent: true };
+  const options = { directory: path.join(root, "Database"), name: "modern", binaryPath, nativeManifest, storageEncryption: "auto", silent: true };
   let db;
   try {
     db = await BsonLite.open(options);
