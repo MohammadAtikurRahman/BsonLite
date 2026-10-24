@@ -12,6 +12,7 @@ const { profileFor } = require("./engine-profiles.cjs");
 const { storagePaths } = require("./paths.cjs");
 const { protectDirectory } = require("./permissions.cjs");
 const { prepareManagedRoot } = require("./managed.cjs");
+const { publishCacheFile } = require("./cache-files.cjs");
 const execFileAsync = promisify(execFile);
 
 async function resolveEngine(options) {
@@ -61,9 +62,9 @@ async function resolveEngine(options) {
     const licenseFolder = path.join(folder, "licenses");
     fs.mkdirSync(licenseFolder, { recursive: true, mode: 0o700 });
     for (const entry of embedded.licenses) {
-      atomicWrite(path.join(licenseFolder, path.basename(entry.name)), entry.text);
+      await publishCacheFile(path.join(licenseFolder, path.basename(entry.name)), entry.text);
     }
-    if(embedded.nativeManifest)atomicWrite(path.join(folder,"native-engine.json"),JSON.stringify(embedded.nativeManifest,null,2));
+    if(embedded.nativeManifest)await publishCacheFile(path.join(folder,"native-engine.json"),JSON.stringify(embedded.nativeManifest,null,2));
   }
   try {
     const result = await execFileAsync(binaryPath, ["--version"], {
