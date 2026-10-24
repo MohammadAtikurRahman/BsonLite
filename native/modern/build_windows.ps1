@@ -52,7 +52,7 @@ try {
     $arguments = @('build', 'install-mongod', '--config=local', '--config=opt', '--build_enterprise=False',
         '--js_engine=none', '--debug_symbols=False', '--separate_debug=False', '--dbg_level=0',
         '--compiler_type=msvc', '--allocator=system', '--features=static_link_msvcrt',
-        '--features=-multithreaded_feature', '--features=-single_threaded_feature', ('--jobs=' + $Jobs),
+        '--features=-multithreaded', '--features=-single_threaded', ('--jobs=' + $Jobs),
         ('--define=MONGO_VERSION=' + $lock.mongo.version), ('--define=MONGO_GIT_HASH=' + $lock.mongo.commit),
         ('--repo_env=BAZEL_VS=' + $vs), ('--repo_env=BAZEL_VC=' + (Join-Path $vs 'VC')),
         ('--repo_env=BAZEL_VC_FULL_VERSION=' + $compiler.Name), ('--repo_env=BAZEL_WINSDK_FULL_VERSION=' + $sdk.Name))
