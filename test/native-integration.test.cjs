@@ -16,6 +16,19 @@ const temp=()=>fs.mkdtempSync(path.join(os.tmpdir(),"BsonLite Native পরী�
 const metadata=directory=>JSON.parse(fs.readFileSync(path.join(directory,"bsonlite.json")));
 function findMarker(file,marker){const fd=fs.openSync(file,"r");try{const buffer=Buffer.alloc(65536);let tail=Buffer.alloc(0),offset=0;while(offset<fs.fstatSync(fd).size){const n=fs.readSync(fd,buffer,0,buffer.length,offset);if(!n)break;const bytes=Buffer.concat([tail,buffer.subarray(0,n)]);if(bytes.includes(marker))return true;tail=bytes.subarray(Math.max(0,bytes.length-marker.length));offset+=n;}return false;}finally{fs.closeSync(fd);}}
 function clean(root){fs.rmSync(root,{recursive:true,force:true});}
+async function startupFixtureDiagnostic(directory){
+ // Only this suite's synthetic fixture is read, before its normal cleanup.
+ try{
+  const m=metadata(directory);if(!/^[a-f0-9]{32}$/.test(m.storeId))throw Error();
+  const file=path.join(directory,"logs/bsonlite.log.enc"),stat=fs.lstatSync(file);
+  if(!stat.isFile()||stat.isSymbolicLink()||stat.size>12*1024*1024)throw Error();
+  const {auth}=await require("../src/vault.cjs").loadVault(path.join(managed,"stores",m.storeId,"vault.json"),m.storeId,options(directory));
+  let text=require("../src/native-storage.cjs").decryptLog(file,auth);
+  for(const value of Object.values(auth))if(typeof value==="string"&&value.length>8)text=text.split(value).join("[redacted]");
+  if(text.length>8192)text=text.slice(0,4096)+"\n[... bounded fixture log ...]\n"+text.slice(-4096);
+  console.error("[synthetic native fixture diagnostic]",text);
+ }catch(_){console.error("[synthetic native fixture diagnostic] Unavailable; protected credentials and ciphertext were not printed.");}
+}
 test.after(()=>clean(managed));
 
 test("real MongoDB queries, indexes and BSON values work with encrypted WiredTiger blocks",live,async()=>{
@@ -34,7 +47,7 @@ test("real MongoDB queries, indexes and BSON values work with encrypted WiredTig
   const logs=fs.readdirSync(path.join(directory,"logs"));assert.ok(logs.some(n=>n.endsWith(".enc")));assert.equal(logs.some(n=>n.endsWith(".log")),false);
   assert.ok(fs.readdirSync(path.join(directory,"data/journal")).filter(n=>n.startsWith("WiredTigerLog.")).some(n=>findMarker(path.join(directory,"data/journal",n),Buffer.from("BSLAE001"))));
   db=await B.open(options(directory));const saved=await db.collection("items").findOne({_id:id});assert.equal(saved.canary,"NATIVE_SECRET_SENTINEL_842416");assert.ok(saved.created instanceof Date);assert.equal(saved.created.getTime(),date.getTime());
- }finally{if(db)await db.close();clean(root);}
+ }catch(error){await startupFixtureDiagnostic(directory);throw error;}finally{if(db)await db.close();clean(root);}
 });
 
 test("native backup/restore preserves the data key and rewraps it for a new store identity",live,async()=>{

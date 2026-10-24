@@ -193,6 +193,15 @@ jobs:
             dist-modern/
             licenses/modern-sdk/
             native/build/modern/*.xml
+      - name: Preserve failed-run test reports and the native manifest
+        if: failure()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: BsonLite-modern-diagnostics-${{ github.sha }}
+          if-no-files-found: ignore
+          path: |
+            native/build/modern/*.xml
+            assets/modern-win32-x64/native-engine.json
       - name: Preserve successful compiler actions for the next build attempt
         if: always() && steps.engine-cache.outputs.cache-hit != 'true' && steps.native-cache.outputs.cache-hit != 'true'
         continue-on-error: true
