@@ -85,6 +85,7 @@ jobs:
           restore-keys: modern-win2022-v143-static-v1-
       - name: Build the pinned SSPL source and encrypted engine
         if: steps.engine-cache.outputs.cache-hit != 'true'
+        timeout-minutes: 300
         shell: pwsh
         run: ./native/modern/build_windows.ps1
       - name: Preserve the compiled engine before runtime and packaging tests

@@ -2,7 +2,7 @@ name: Build native encrypted Windows SDK
 on:
   workflow_dispatch:
   push:
-    branches: [main]
+    branches: [main, upgrade/mongodb-9.0]
 permissions:
   contents: read
 concurrency:
