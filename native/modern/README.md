@@ -38,10 +38,27 @@ libraries before starting the full build.
 ./native/modern/build_windows.ps1
 npm ci
 npm run build:modern:preview
+
+# Use a new checkout folder; run these commands once.
+git clone https://github.com/MohammadAtikurRahman/BsonLite-Console.git native/build/console-compat
+git -C native/build/console-compat checkout d03a5898a976280833653117b9a071d6bd4097ef
+npm --prefix native/build/console-compat ci --ignore-scripts
+python native/modern/prepare_legacy.py --work native/build/modern/legacy-sdk
+
 $env:BSONLITE_MODERN_BINARY = "$PWD/assets/modern-win32-x64/mongod.exe"
 $env:BSONLITE_MODERN_MANIFEST = "$PWD/assets/modern-win32-x64/native-engine.json"
+$env:BSONLITE_CONSOLE_REPO = "$PWD/native/build/console-compat"
+$env:BSONLITE_LEGACY_MODULE = "$PWD/native/build/modern/legacy-sdk/package"
 npm run test:modern-integration
 ```
+
+These commands exercise the three runtime/upgrade/CLI cases using a source
+preview and an explicitly supplied engine. They do not produce a validated
+customer bundle. For the full source-native and final embedded gates, use the
+[modern Windows workflow](../../.github/workflows/modern-engine.yml), which also
+records the required JUnit reports, verifies them and packages matching source.
+The [test evidence](../../TEST_RESULTS.md) distinguishes these checks from the
+already successful legacy-engine compatibility run.
 
 The Windows manifest is modified and re-extracted with the real Windows SDK
 resource tool before its checksum is recorded. Engine self-tests, version and

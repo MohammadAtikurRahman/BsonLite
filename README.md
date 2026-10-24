@@ -6,7 +6,7 @@ This is a release candidate with a defined Windows x64 profile, not an independe
 
 ## Experimental modern engine
 
-The `upgrade/mongodb-9.0` branch ports the encrypted engine to pinned MongoDB
+The experimental build path in `main` and `upgrade/mongodb-9.0` ports the encrypted engine to pinned MongoDB
 Community 9.0.4 / WiredTiger 12 and Node.js driver 7.7.0. It adds a logical
 `BsonLite.upgrade(...)` path from the previous encrypted SDK, preserving BSON,
 indexes, validators and views in a new directory. The original store stays in
@@ -104,4 +104,4 @@ After updating the SDK, keep your existing `BsonLite.connect(...)` code. BsonLit
 
 The optional adapter starts only after database connection and uses a private current-account registry and a token-protected HTTP endpoint on 127.0.0.1. The native encrypted engine and its mutual TLS connection are unchanged. Stop the SDK normally to remove the session. Set `console: false` in initial connection options or `BSONLITE_CONSOLE=0` to opt out. A running shared connection rejects conflicting Console options until it is stopped.
 
-The adapter source is bundled in `src/console-addon.cjs`; its Acorn dependency license is included. The standalone SDK combines the preserved native distribution with this adapter. npm distribution rc.3 loads the preserved core via its adapter entry point. New discovery, live-driver/TLS and Electron workflow tests pass on Linux. Windows runtime verification of automatic discovery is pending. See `CONSOLE_BN.md`.
+The adapter source is bundled in `src/console-addon.cjs`; its Acorn dependency license is included. The standalone SDK combines the preserved native distribution with this adapter. npm distribution rc.3 loads the preserved core via its adapter entry point. The packed SDK's Windows Console/CLI check passed in [run 40085137332](https://github.com/MohammadAtikurRahman/Bsonlite-SDK/actions/runs/40085137332). The updated adapter preserves concurrent `start()` calls and rejects conflicting connection settings; the current core's full Windows compatibility suite passed in [run 40123385230](https://github.com/MohammadAtikurRahman/BsonLite/actions/runs/40123385230). Verification against the rebuilt modern engine is a separate required gate. See `CONSOLE_BN.md` and [test evidence](TEST_RESULTS.md).

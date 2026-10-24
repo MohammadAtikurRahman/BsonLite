@@ -1,11 +1,12 @@
 # BsonLite 0.6.0-rc.1 validation
 
-The complete native Windows workflow passed on **2026-10-19**, including the actual rebuilt engine, source SDK, final single-file SDK and earlier-format compatibility tests.
+The current shared SDK source passed the complete legacy-engine Windows workflow on **2026-10-24**, including the actual encrypted engine, source SDK, final single-file SDK and earlier-format compatibility tests. This is backward-compatibility evidence for the existing 4.0.28 profile, not validation of the experimental 9.0.4 engine.
 
-- Tested code commit: `1cf4c8d81c271ab85cdadd84ebac998101712ab1`.
-- Successful run: https://github.com/MohammadAtikurRahman/BsonLite/actions/runs/39260874503.
-- Artifact: `BsonLite-native-Windows-x64-1cf4c8d81c271ab85cdadd84ebac998101712ab1`, GitHub artifact ID `12190998067`.
-- Artifact ZIP SHA-256: `5a289bd7dd36c55ad0762e846bdbdf42506de2ae21558c2900f353ba8c8e81f8`.
+- Tested code commit: `82f407392a996ec031c818d1a491bdeea3646c97`.
+- Successful run: https://github.com/MohammadAtikurRahman/BsonLite/actions/runs/40123385230.
+- Artifact: `BsonLite-native-Windows-x64-82f407392a996ec031c818d1a491bdeea3646c97`, GitHub artifact ID `12572412976`.
+- Artifact ZIP SHA-256: `e23e3eb19155999280253d14469c72b0dc5986728a22537c241a37720da54643`.
+- Matching modified-engine source SHA-256: `c36f14d817e3a3dff09d981a75985eccda68b6a9931a5179ee7c08db9da598f6`.
 
 Documentation-only commits can follow this tested commit. The artifact's `validation.json` records the exact tested code/run and modified-engine source hash; `SHA256SUMS.txt` records the CJS and build-info hashes. A source-preview bundle is a different artifact and contains no engine.
 
@@ -15,7 +16,7 @@ Runner: Windows Server 2022 x64, Node.js 24. Engine: pinned MongoDB 4.0.28 / Wir
 
 | Check | Passed | Failed | Skipped |
 | --- | ---: | ---: | ---: |
-| Unit, security, compiled crypto and Windows helpers | 35 | 0 | 0 |
+| Unit, security, compiled crypto and Windows helpers | 38 | 0 | 0 |
 | Focused parent-exit and HTTP starter preflight | 2 | 0 | 0 |
 | Source SDK with the actual native engine | 8 | 0 | 2 |
 | Final artifact packaging | 2 | 0 | 1 |
@@ -27,6 +28,18 @@ The two source-suite skips require the final embedded bundle and passed in the s
 The final native suite exercised real CRUD/BSON values, indexes and reopening, encrypted WiredTiger data and journals, actual aggregation spill files in Unicode paths, rejection of per-collection plaintext overrides, wrong protected-key refusal without data reset, encrypted native backup/restore, BSON-preserving migration and views, interrupted-migration refusal, full-native capability gating, isolated consumers without npm packages/developer binary paths, and concurrent extraction into a fresh engine cache.
 
 The final earlier-format suite exercised authenticated connections and account rotation, rejection of missing/incorrect TLS certificates and hostnames, independent stores/ports, forced parent termination with engine/helper cleanup and persisted data, import/require in an empty consumer directory, encrypted backups and tamper rejection, path-traversal rejection, original-preserving upgrade, identity/lock protections, Unicode paths and the actual HTTP starter lifecycle. Both parent-exit cases also require the owned Windows processes to exit before fixture removal.
+
+This run also verifies the two Windows regressions found during the engine port: concurrent consumers can publish identical engine-cache notices/metadata without an `EPERM` rename failure, and the Console adapter preserves the SDK's shared pending `start()` promise. The cache publication unit tests also reject mismatching bytes and exercise bounded sharing-lock retries.
+
+## Experimental modern-engine evidence
+
+The modern source profile selects MongoDB Community 9.0.4, WiredTiger 12.0.0 and Node.js driver 7.7.0. Source tests cover binary BSON conversion between driver majors, incomplete-migration protection, original-store preservation, collation review and the existing Console's typed query bridge. The local source suite passed all 12 cases; it cannot establish that a Windows engine works.
+
+The separate storage job compiles the actual pinned WiredTiger C source and BsonLite encryptor. It passed a 2,048-record write/reopen probe, data/journal encryption, wrong-key rejection, oversized-key-frame rejection and tampered-ciphertext rejection. [Run 40117415181](https://github.com/MohammadAtikurRahman/BsonLite/actions/runs/40117415181) records successful source and storage jobs. The full MongoDB C++ Windows build and its runtime/migration gates were still pending when this evidence was recorded.
+
+Only a successful modern Windows workflow can produce the experimental embedded SDK and npm tarball. It must execute seven required source/native cases, three migration/runtime/CLI cases and nine final embedded cases without skipping any required case. These groups overlap. The final `validation.json` binds the engine, SDK, matching source and exact test-report hashes to the commit/run. See [the modern workflow](https://github.com/MohammadAtikurRahman/BsonLite/actions/workflows/modern-engine.yml).
+
+The published npm package remains separate from this source upgrade. The SDK repository's [Windows packed-package/Console run 40085137332](https://github.com/MohammadAtikurRahman/Bsonlite-SDK/actions/runs/40085137332) passed for the preserved legacy package. The Console promise fix's [Windows test/build run 40123265157](https://github.com/MohammadAtikurRahman/BsonLite-Console/actions/runs/40123265157) also passed. Neither is a substitute for modern-engine runtime evidence.
 
 ## Native build evidence
 
