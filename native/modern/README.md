@@ -31,7 +31,7 @@ No Python 2 or VC90 installation is used for this build path.
 The builder uses a short Bazel output root (`C:\b` on a normal Windows install)
 because MSVC still limits generated object-file paths. Override it with
 `-BazelRoot D:\b` when needed; the directory must be short and writable. The
-preflight compiles the longest-path server target as well as the patched C++
+preflight compiles the previously failing long-path server target as well as the patched C++
 libraries before starting the full build.
 
 ```powershell
@@ -76,6 +76,10 @@ prerelease. Its separate `BsonLite-modern-npm-<commit>` artifact contains the
 tarball, validation record and checksum. Publishing that tarball is a separate
 maintainer action; its default tag is `next`. Matching engine source and the
 integrated Console adapter are included in the package.
+The original source, migration/CLI and final embedded JUnit reports are also
+included under `validation/`, with hashes bound to `validation.json`. The
+preparation script rechecks the copied SDK, source archive and reports before
+making the package available, including inputs changed during preparation.
 
 ## Source review without the engine
 
@@ -138,6 +142,12 @@ options/indexes/views, and compares document counts and BSON digests. A failed
 or interrupted destination remains blocked. The source records are retained.
 Non-simple collations require explicit `allowCollationUpgrade: true` because
 the new engine's ICU version can change comparison and unique-index behavior.
+
+Use the modern SDK's `BSON` and `ObjectId` exports when constructing values for
+the upgraded app's queries. The new driver uses BSON 7, which rejects objects
+from the previous BSON major if they are passed directly. `upgrade()` converts
+the old records automatically through binary BSON; the Console's typed bridge
+also converts between its client and SDK libraries.
 
 The equivalent developer command is:
 

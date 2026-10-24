@@ -33,6 +33,12 @@ main().catch(console.error);
 চলমান app-টি আগের BsonLite Console 0.2.0 ও CLI-এর automatic connection
 তালিকায় দেখা যাবে। GUI software আলাদাভাবে চালাতে হবে। SDK নিজে GUI খুলবে না।
 
+নতুন app-এর query-তে ObjectId, Long ও অন্য BSON value বানাতে এই নতুন SDK-এর
+`BsonLite.ObjectId` ও `BsonLite.BSON` ব্যবহার করুন। নতুন driver BSON 7 ব্যবহার
+করে; পুরোনো library-এর object সরাসরি দিলে version error হয়। নিচের `upgrade()`
+পুরোনো record-এর BSON নিজেই রূপান্তর করে, Console connection-ও এই রূপান্তর
+সামলায়।
+
 ## পুরোনো database থাকলে
 
 সব app বন্ধ করুন। পুরোনো `Database` ও তার protected vault রেখে দিন। একই

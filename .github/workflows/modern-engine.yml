@@ -149,7 +149,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           repository: MohammadAtikurRahman/Bsonlite-SDK
-          ref: e0f80f1b926ca80745ac49a30506f5a24c6ca762
+          ref: 7f33825972537deecb3ba79ed36fa95a0c86ea16
           path: native/build/npm-packager
           persist-credentials: false
       - name: Prepare, verify and install the actual experimental npm package
