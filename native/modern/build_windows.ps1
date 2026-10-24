@@ -39,6 +39,7 @@ try {
     # present in the shared rc file before any wrapper/bootstrap is started.
     @(
         'common --config=local',
+        ('common --disk_cache="' + (Join-Path $root 'native/build/modern/bazel-cache').Replace('\','/') + '"'),
         ('common:windows --repo_env=BAZEL_VS="' + $vs.Replace('\','/') + '"'),
         ('common:windows --repo_env=BAZEL_VC="' + (Join-Path $vs 'VC').Replace('\','/') + '"'),
         ('common:windows --repo_env=BAZEL_VC_FULL_VERSION=' + $compiler.Name),
@@ -50,16 +51,22 @@ try {
     $bazel = Join-Path $env:USERPROFILE '.local/bin/bazel.exe'
     $arguments = @('build', 'install-mongod', '--config=local', '--config=opt', '--build_enterprise=False',
         '--js_engine=none', '--debug_symbols=False', '--separate_debug=False', '--dbg_level=0',
-        '--compiler_type=msvc', '--allocator=system', '--features=static_link_msvcrt', ('--jobs=' + $Jobs),
+        '--compiler_type=msvc', '--allocator=system', '--features=static_link_msvcrt',
+        '--features=-multithreaded_feature', '--features=-single_threaded_feature', ('--jobs=' + $Jobs),
         ('--define=MONGO_VERSION=' + $lock.mongo.version), ('--define=MONGO_GIT_HASH=' + $lock.mongo.commit),
         ('--repo_env=BAZEL_VS=' + $vs), ('--repo_env=BAZEL_VC=' + (Join-Path $vs 'VC')),
         ('--repo_env=BAZEL_VC_FULL_VERSION=' + $compiler.Name), ('--repo_env=BAZEL_WINSDK_FULL_VERSION=' + $sdk.Name))
+    $preflight = @('build', '//src/mongo/db/storage:encryption_hooks_with_debug',
+        '//src/mongo/db/storage/wiredtiger:storage_wiredtiger_core_with_debug', '//src/mongo/db:mongod_main_with_debug',
+        '--output_groups=compilation_outputs') + $arguments[2..($arguments.Length - 1)]
+    Checked $bazel $preflight
     Checked $bazel $arguments
     $engine = Get-ChildItem 'bazel-bin/install' -Recurse -Filter mongod.exe | Where-Object { $_.Length -gt 1MB } | Select-Object -First 1
     if (-not $engine) { throw 'Bazel did not produce the engine.' }
     $output = Join-Path $root 'assets/modern-win32-x64'
     New-Item -ItemType Directory -Force $output | Out-Null
     Copy-Item $engine.FullName (Join-Path $output 'mongod.exe')
+    Checked $bazel @('shutdown')
 } finally { Pop-Location }
 $engine = Join-Path $output 'mongod.exe'
 $probe = (& $engine '--bsonlite-native-self-test') -join "`n"

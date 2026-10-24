@@ -9,7 +9,7 @@ permissions:
   contents: read
 concurrency:
   group: modern-engine-${{ github.ref }}
-  cancel-in-progress: false
+  cancel-in-progress: true
 jobs:
   source:
     runs-on: ubuntu-24.04
@@ -22,7 +22,41 @@ jobs:
       - run: npm ci
       - run: npm test
       - run: npm run build:modern:preview
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          repository: MohammadAtikurRahman/BsonLite-Console
+          ref: f118504cc89f457f4039c6a8757740e86e522331
+          path: native/build/console-compat
+          persist-credentials: false
+      - run: npm ci --ignore-scripts
+        working-directory: native/build/console-compat
       - run: npm run test:modern
+        env:
+          BSONLITE_CONSOLE_REPO: ${{ github.workspace }}/native/build/console-compat
+  storage:
+    needs: source
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with: {persist-credentials: false}
+      - uses: actions/setup-python@ece7cb06caefa5fff74198d8649806c4678c61a1
+        with: {python-version: '3.13'}
+      - run: python native/modern/prepare.py
+      - name: Build the pinned crypto library
+        run: |
+          cd native/build/modern/dependencies/libsodium-1.0.22
+          ./configure --disable-shared --enable-static --with-pic --prefix="$GITHUB_WORKSPACE/native/build/modern/sodium"
+          make -j4
+          make install
+      - name: Test the real WiredTiger 12 ABI, encrypted data/journals and wrong keys
+        run: |
+          python native/modern/patch_mongo.py native/build/modern/dependencies/mongo-246de92935f8636f4f90889d418b31ae70dbaafd --sodium-include native/build/modern/sodium/include --sodium-library native/build/modern/sodium/lib/libsodium.a
+          python native/modern/test_wiredtiger.py --mongo native/build/modern/dependencies/mongo-246de92935f8636f4f90889d418b31ae70dbaafd --sodium-root native/build/modern/sodium --work native/build/modern/wt12-probe
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: wiredtiger12-storage-evidence-${{ github.sha }}
+          path: native/build/modern/wt12-probe/validation.json
   windows:
     needs: source
     runs-on: windows-2022
@@ -34,17 +68,62 @@ jobs:
         with: {python-version: '3.13'}
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
         with: {node-version: '24', package-manager-cache: false}
+      - uses: actions/cache/restore@caa296126883cff596d87d8935842f9db880ef25
+        id: native-cache
+        with:
+          path: native/build/modern/bazel-cache
+          key: modern-win2022-v143-static-v1-${{ github.sha }}-${{ github.run_attempt }}
+          restore-keys: modern-win2022-v143-static-v1-
       - name: Build the pinned SSPL source and encrypted engine
         shell: pwsh
         run: ./native/modern/build_windows.ps1
       - run: npm ci
       - run: npm run build:modern:preview
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
+        with:
+          repository: MohammadAtikurRahman/BsonLite-Console
+          ref: f118504cc89f457f4039c6a8757740e86e522331
+          path: native/build/console-compat
+          persist-credentials: false
+      - run: npm ci --ignore-scripts
+        working-directory: native/build/console-compat
+      - run: python native/modern/prepare_legacy.py --work native/build/modern/legacy-sdk
+      - name: Full native storage, journal, spill, key and backup suites
+        shell: pwsh
+        run: |
+          $env:BSONLITE_TEST_MODULE = Join-Path $PWD 'dist-modern/BsonLite.cjs'
+          $env:BSONLITE_NATIVE_BINARY = Join-Path $PWD 'assets/modern-win32-x64/mongod.exe'
+          $env:BSONLITE_NATIVE_MANIFEST = Join-Path $PWD 'assets/modern-win32-x64/native-engine.json'
+          node --test --test-concurrency=1 --test-reporter=junit --test-reporter-destination=native/build/modern/source-native.xml test/native-integration.test.cjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Test real encrypted storage, TLS, BSON and restart
         shell: pwsh
         run: |
           $env:BSONLITE_MODERN_BINARY = Join-Path $PWD 'assets/modern-win32-x64/mongod.exe'
           $env:BSONLITE_MODERN_MANIFEST = Join-Path $PWD 'assets/modern-win32-x64/native-engine.json'
-          npm run test:modern-integration
+          $env:BSONLITE_CONSOLE_REPO = Join-Path $PWD 'native/build/console-compat'
+          $env:BSONLITE_LEGACY_MODULE = Join-Path $PWD 'native/build/modern/legacy-sdk/package'
+          node --test --test-concurrency=1 --test-reporter=junit --test-reporter-destination=native/build/modern/runtime.xml test/modern-integration.test.cjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Verify required test cases before permitting an embedded bundle
+        run: python native/modern/validate_release.py --phase source --source native/build/modern/source-native.xml --runtime native/build/modern/runtime.xml
+      - name: Build the experimental single-file SDK with matching source
+        shell: pwsh
+        run: |
+          $env:BSONLITE_ENGINE_PATH = Join-Path $PWD 'assets/modern-win32-x64/mongod.exe'
+          $env:BSONLITE_NATIVE_MANIFEST = Join-Path $PWD 'assets/modern-win32-x64/native-engine.json'
+          npm run build:modern
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+      - name: Test the actual embedded SDK and isolated concurrent consumers
+        shell: pwsh
+        run: |
+          $env:BSONLITE_TEST_MODULE = Join-Path $PWD 'dist-modern/BsonLite.cjs'
+          $env:BSONLITE_NATIVE_BINARY = Join-Path $PWD 'assets/modern-win32-x64/mongod.exe'
+          $env:BSONLITE_NATIVE_MANIFEST = Join-Path $PWD 'assets/modern-win32-x64/native-engine.json'
+          $env:BSONLITE_MODERN_EMBEDDED = '1'
+          node --test --test-concurrency=1 --test-reporter=junit --test-reporter-destination=native/build/modern/final-native.xml test/native-integration.test.cjs
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          python native/modern/validate_release.py --phase final --source native/build/modern/source-native.xml --runtime native/build/modern/runtime.xml --final native/build/modern/final-native.xml
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - name: Upload experimental evidence and matching source
         uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
@@ -55,6 +134,14 @@ jobs:
             assets/modern-win32-x64/
             native/build/modern/BsonLite-modern-engine-source.tar.gz
             licenses/modern/
-            dist-modern/build-info.json
-# No npm publishing, automatic release, or 'windowsIntegration=passed' flag.
-# Full spill/recovery/migration and final-bundle validation gate promotion.
+            dist-modern/
+            licenses/modern-sdk/
+            native/build/modern/*.xml
+      - name: Preserve successful compiler actions for the next build attempt
+        if: always() && steps.native-cache.outputs.cache-hit != 'true'
+        uses: actions/cache/save@caa296126883cff596d87d8935842f9db880ef25
+        with:
+          path: native/build/modern/bazel-cache
+          key: modern-win2022-v143-static-v1-${{ github.sha }}-${{ github.run_attempt }}
+# No npm publishing or automatic public release. Native validation flags require
+# named, unskipped source, migration, spill and final bundled-consumer tests.

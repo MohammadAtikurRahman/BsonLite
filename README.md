@@ -4,6 +4,20 @@ A single-file, MongoDB-based Node.js SDK for offline Windows applications. The c
 
 This is a release candidate with a defined Windows x64 profile, not an independently audited database product. Every downloadable native artifact is produced only after the Windows workflow passes its source and final-bundle checks. Its `validation.json` identifies the exact commit and run. A Git checkout and `build:preview` contain source work rather than a customer engine.
 
+## Experimental modern engine
+
+The `upgrade/mongodb-9.0` branch ports the encrypted engine to pinned MongoDB
+Community 9.0.4 / WiredTiger 12 and Node.js driver 7.7.0. It adds a logical
+`BsonLite.upgrade(...)` path from the previous encrypted SDK, preserving BSON,
+indexes, validators and views in a new directory. The original store stays in
+place. Node.js 20.19+ and Windows x64 build 20348+ are the modern build profile.
+
+This development path is not a replacement customer release yet. Its workflow
+requires real encrypted storage, journal/spill, backup, migration, existing CLI
+and final single-file consumer tests before producing a validated experimental
+artifact. The default build and published npm package retain their existing
+engine. See [modern build and migration instructions](native/modern/README.md).
+
 ## Use
 
 Copy the validated `BsonLite.cjs` into your Node.js project:
@@ -67,7 +81,7 @@ Explicit `storageEncryption:'auto'|'required'|'none'` is retained for earlier-fo
 
 ## Source and build
 
-Source: [MohammadAtikurRahman/BsonLite](https://github.com/MohammadAtikurRahman/BsonLite), private, branch `main`.
+Source: [MohammadAtikurRahman/BsonLite](https://github.com/MohammadAtikurRahman/BsonLite), branch `main`.
 
 A push to `main` runs **Build native encrypted Windows SDK**. Only a successful run uploads **BsonLite-native-Windows-x64-<commit>**, including `dist/BsonLite.cjs`, starter files, hashes, validation provenance, notices and matching modified-engine source. The workflow does not automatically publish a GitHub Release. See `native/README.md`, `DEPLOY_WINDOWS.md` and `TEST_RESULTS.md`.
 

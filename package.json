@@ -20,7 +20,7 @@
     "unlock": "node scripts/unlock.cjs",
     "build:modern": "node scripts/build.cjs --engine-profile=modern",
     "build:modern:preview": "node scripts/build.cjs --engine-profile=modern --preview-source",
-    "test:modern": "node --test test/modern.test.cjs",
+    "test:modern": "node --test test/modern.test.cjs test/upgrade.test.cjs test/console-modern.test.cjs",
     "test:modern-integration": "node --test --test-concurrency=1 test/modern-integration.test.cjs"
   },
   "dependencies": {

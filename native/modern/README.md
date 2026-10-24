@@ -16,6 +16,8 @@ all replacement sites before changing upstream files, registers the built-in
 encryptor before recovery, ports the new DataRange temporary-file API, forces
 collection/index encryption after user configuration, and disables the engine's
 own plaintext minidump writer. These changes need actual full-engine testing.
+The shared WiredTiger open configuration also encrypts the new secondary spill
+database, including its metadata and journal.
 
 ## Build on Windows
 
@@ -36,9 +38,12 @@ npm run test:modern-integration
 The Windows manifest is modified and re-extracted with the real Windows SDK
 resource tool before its checksum is recorded. Engine self-tests, version and
 DLL/dump imports must pass. The manifest remains `windowsIntegration: pending`
-until the entire release validation has actually passed; do not edit this flag
-to bypass validation. The separate experimental workflow uploads evidence only
-after its steps pass. It does not publish an npm version or a GitHub Release.
+until the required source-engine and migration/CLI JUnit cases pass.
+`validate_release.py` checks exact named cases and rejects skipped or failed
+tests. A second gate requires the final embedded SDK and isolated concurrent
+consumers. Do not edit validation flags to bypass either gate. The experimental
+workflow uploads the customer artifact only after both gates pass. It does not
+publish an npm version or a GitHub Release.
 
 ## Source review without the engine
 
@@ -47,6 +52,12 @@ npm ci
 npm run build:modern:preview
 npm run test:modern
 ```
+
+For the cross-version Console/CLI test, check out BsonLite Console at commit
+`f118504cc89f457f4039c6a8757740e86e522331`, run `npm ci --ignore-scripts`
+there, and set `BSONLITE_CONSOLE_REPO` to that checkout before `test:modern`.
+The workflow runs this test with the existing Console's BSON 6 client and the
+modern SDK's BSON 7 driver through the authenticated EJSON bridge.
 
 This generates `dist-modern/BsonLite.cjs` with the new driver and API, but no
 native engine. A source preview cannot create an encrypted customer database.
@@ -65,6 +76,50 @@ compatibility is not promised.
 Old 4.0 data directories and physical backups must not be opened by the new
 engine. Preserve them and use a separately tested logical migration into a new
 store. Copying metadata or changing its version is not migration.
+
+## Upgrade an existing encrypted store
+
+Close all applications using the original store and retain an encrypted backup,
+the original directory and its matching protected vault. Once the modern engine
+has passed the release gates, use the **previous** SDK to read the old data:
+
+```js
+const previous = require('./BsonLite-previous.cjs');
+const modern = require('./BsonLite-modern.cjs');
+
+const report = await modern.upgrade({
+  sourceSDK: previous,
+  sourceDirectory: './Database',
+  directory: './Database9'
+});
+console.log(report);
+```
+
+The destination must not exist. The SDK reserves it as incomplete before
+copying, preserves BSON through binary serialization, recreates collection
+options/indexes/views, and compares document counts and BSON digests. A failed
+or interrupted destination remains blocked. The source records are retained.
+Non-simple collations require explicit `allowCollationUpgrade: true` because
+the new engine's ICU version can change comparison and unique-index behavior.
+
+The equivalent developer command is:
+
+```sh
+node scripts/upgrade.cjs --source-sdk ./BsonLite-previous.cjs --modern-sdk ./dist-modern/BsonLite.cjs --source ./Database --directory ./Database9
+```
+
+Source previews additionally require the matching `--binary` and
+`--native-manifest`. `prepare_legacy.py` downloads the integrity-pinned published
+`bsonlite-sdk@0.6.0-rc.3` solely as the Windows migration test fixture.
+
+## Independent storage test
+
+`test_wiredtiger.py` compiles the actual pinned WiredTiger C source and BsonLite
+extension against the pinned static libsodium library. Its probe writes and
+reopens 2,048 records, checks encrypted data/journal blocks, rejects wrong keys,
+oversized key frames and altered ciphertext. Its report identifies MongoDB C++
+and Windows validation separately; this test alone cannot validate a customer
+engine.
 
 ## Licensing
 

@@ -9,9 +9,10 @@ function inside(parent,child){const r=path.relative(parent,child);return !r||(!r
 function indexForCreate(index){
   const {v,ns,key,storageEngine,...options}=index;
   const cleanKey={};
+  const setKey=(field,value)=>Object.defineProperty(cleanKey,field,{value,enumerable:true,writable:true,configurable:true});
   for(const [field,value]of Object.entries(key)){
-    if(field==="_fts")for(const name of Object.keys(index.weights||{}))cleanKey[name]="text";
-    else if(field!=="_ftsx")cleanKey[field]=value;
+    if(field==="_fts")for(const name of Object.keys(index.weights||{}))setKey(name,"text");
+    else if(field!=="_ftsx")setKey(field,value);
   }
   return {key:cleanKey,...options};
 }

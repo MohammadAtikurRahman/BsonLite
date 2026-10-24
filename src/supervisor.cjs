@@ -198,7 +198,14 @@ function run() {
     const migrationFile=path.join(options.directory,"migration.json");
     if(fs.existsSync(migrationFile)){
       let migration;try{if(fs.lstatSync(migrationFile).isSymbolicLink()||fs.statSync(migrationFile).size>1024*1024)throw new Error();migration=JSON.parse(fs.readFileSync(migrationFile,"utf8"));}catch(_){throw new BsonLiteError("BSONLITE_MIGRATION_INCOMPLETE","Invalid migration marker; data was not reset.");}
-      if(migration.state!=="complete")throw new BsonLiteError("BSONLITE_MIGRATION_INCOMPLETE","This destination contains an incomplete migration. Continue using the preserved original database; do not treat this copy as complete.");
+      if(migration.state!=="complete") {
+        const token = options.migrationToken;
+        const authorized = migration.version === 2 && migration.state === "in-progress" &&
+          typeof token === "string" && /^[a-f0-9]{64}$/.test(token) &&
+          typeof migration.tokenHash === "string" && /^[a-f0-9]{64}$/.test(migration.tokenHash) &&
+          crypto.timingSafeEqual(Buffer.from(migration.tokenHash, "hex"), crypto.createHash("sha256").update(token).digest());
+        if (!authorized) throw new BsonLiteError("BSONLITE_MIGRATION_INCOMPLETE","This destination contains an incomplete migration. Continue using the preserved original database; do not treat this copy as complete.");
+      }
     }
     await protectDirectory(options.directory);
     options = { ...options, storageEncryption: storagePolicy(options) };

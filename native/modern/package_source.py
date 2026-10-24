@@ -17,9 +17,7 @@ def package(work):
     output.parent.mkdir(parents=True, exist_ok=True)
 
     def include(info):
-        if any(part.startswith("bazel-") or part in (".git", "node_modules", "__pycache__") for part in Path(info.name).parts):
-            return None
-        if info.issym() or info.islnk():
+        if any(part.startswith("bazel-") or part in (".git", ".bazel_logs", "node_modules", "__pycache__") for part in Path(info.name).parts):
             return None
         return info
 

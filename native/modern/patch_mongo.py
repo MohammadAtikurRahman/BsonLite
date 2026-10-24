@@ -5,6 +5,7 @@ Never accepts a fuzzy patch. A successful patch is NOT a validated engine.
 import argparse
 import hashlib
 import json
+import re
 from pathlib import Path
 import shutil
 
@@ -64,6 +65,16 @@ def patch(mongo, sodium_include, sodium_library):
         std::puts("{\\"bsonliteNativeEncryption\\":1,\\"engineVersion\\":\\"9.0.4\\",\\"cipher\\":\\"xchacha20-poly1305\\",\\"selfTest\\":true,\\"temporaryFiles\\":true,\\"libsodium\\":\\"1.0.22\\"}");
         std::fflush(stdout);
         return 0;
+    }
+    bool bsonliteInformational = false;
+    for (int i = 1; i < argc; ++i) {
+        if (std::strcmp(argv[i], "--version") == 0 || std::strcmp(argv[i], "--help") == 0 ||
+            std::strcmp(argv[i], "-h") == 0) bsonliteInformational = true;
+    }
+    if (!bsonliteInformational && bsonlite_load_key() != 0) {
+        std::fputs("BsonLite requires an authenticated key frame before engine startup.\\n", stderr);
+        std::fflush(stderr);
+        return 14;
     }''')
     hooks = "src/mongo/db/storage/encryption_hooks.cpp"
     replace(hooks, '#include "mongo/db/storage/encryption_hooks.h"', '#include "mongo/db/storage/encryption_hooks.h"\n' + include)
@@ -78,6 +89,19 @@ def patch(mongo, sodium_include, sodium_library):
     replace(hooks, '    return Status(ErrorCodes::InternalError,\n                  "Encryption hooks must be enabled to use postprocessTmpData.");',
             '    return bsonliteTransform(in, out, false, BSL_TEMP_DOMAIN);')
     replace("src/mongo/db/storage/encryption_hooks.h", "        return 33;", "        return 52; // BsonLite AEAD overhead plus framed RemoveSaver length")
+    kv = "src/mongo/db/storage/wiredtiger/wiredtiger_kv_engine.cpp"
+    replace(kv, '#include "mongo/db/storage/wiredtiger/wiredtiger_kv_engine.h"',
+            '#include "mongo/db/storage/wiredtiger/wiredtiger_kv_engine.h"\n' + include)
+    # The new server also opens an independent WT instance for spilling. The
+    # shared open-config generator must encrypt its metadata and journals too.
+    replace(kv, '    return ss.str();\n}\n\nWiredTigerKVEngineBase::WiredTigerKVEngineBase',
+            '''    if (bsonlite_key_ready()) {
+        ss << ",encryption=(name=bsonlite_xchacha20_v1,keyid=" << bsonlite_key_id() << ")";
+    }
+    return ss.str();
+}
+
+WiredTigerKVEngineBase::WiredTigerKVEngineBase''')
     for file, anchor in [("wiredtiger_record_store.cpp", "    return ss;\n}\n\nvoid WiredTigerRecordStore::wtDeleteRecord"),
                          ("wiredtiger_index.cpp", "    return StatusWith<std::string>(ss);\n}\n")]:
         name = "src/mongo/db/storage/wiredtiger/" + file
@@ -91,7 +115,21 @@ def patch(mongo, sodium_include, sodium_library):
     dumps = "src/mongo/util/exception_filter_win32.cpp"
     text = (mongo / dumps).read_text()
     start = text.index("void doMinidumpWithException(struct _EXCEPTION_POINTERS* exceptionInfo) {")
-    end = text.index("\nLONG WINAPI exceptionFilter", start)
+    # Only replace the function. The following anonymous-namespace closing
+    # brace is part of the new upstream layout and must remain intact.
+    body = text.index("{", start)
+    depth, end = 0, None
+    tokens = re.compile(r'//[^\n]*|/\*[\s\S]*?\*/|"(?:\\.|[^"\\])*"|\x27(?:\\.|[^\x27\\])*\x27|[{}]')
+    for token in tokens.finditer(text, body):
+        if token.group() == "{":
+            depth += 1
+        elif token.group() == "}":
+            depth -= 1
+            if depth == 0:
+                end = token.end()
+                break
+    if end is None:
+        raise RuntimeError("The upstream minidump function was not balanced")
     replace(dumps, text[start:end], "void doMinidumpWithException(struct _EXCEPTION_POINTERS* exceptionInfo) {\n    (void)exceptionInfo; // Engine-generated plaintext memory dumps are disabled.\n}\n")
     library = sodium_library.resolve()
     if not library.is_file() or not (sodium_include / "sodium.h").is_file():
@@ -119,7 +157,7 @@ cc_library(
 ''' % json.dumps(library.name))
     extension = mongo / "src/third_party/wiredtiger/ext/encryptors/bsonlite"
     extension.mkdir()
-    shutil.copyfile(NATIVE / "src/bsonlite_wiredtiger.c", extension / "bsonlite_wiredtiger.c")
+    (extension / "bsonlite_wiredtiger.c").write_text((NATIVE / "src/bsonlite_wiredtiger.c").read_text().replace("WiredTiger 3.1.1 encryptor", "WiredTiger encryptor"))
     for name, text in changes.items():
         (mongo / name).write_text(text)
     digest = hashlib.sha256()

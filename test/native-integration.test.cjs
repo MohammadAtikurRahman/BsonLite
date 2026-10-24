@@ -4,6 +4,8 @@ const {spawn,spawnSync}=require("node:child_process");
 // Exercise Unicode in vault/TLS/engine paths as well as the project data path.
 const managed=fs.mkdtempSync(path.join(os.tmpdir(),"bsonlite-managed-পরীক্ষা-"));process.env.BSONLITE_DATA_HOME=managed;
 const B=require(process.env.BSONLITE_TEST_MODULE||"../src/index.cjs");
+const modern=B.engineVersion==="9.0.4";
+const embeddedArtifact=Boolean(process.env.BSONLITE_TEST_MODULE)&&(!modern||process.env.BSONLITE_MODERN_EMBEDDED==="1");
 const {Long,Int32,Double,BSONRegExp}=B.BSON;
 const binary=process.env.BSONLITE_NATIVE_BINARY,manifest=process.env.BSONLITE_NATIVE_MANIFEST;
 const enabled=Boolean(binary&&manifest),kind=enabled?JSON.parse(fs.readFileSync(manifest,"utf8")).mode:null;
@@ -55,7 +57,7 @@ test("a wrong protected data key fails authentication without resetting existing
  }finally{if(file&&original)fs.writeFileSync(file,original);if(db)await db.close();clean(root);}
 });
 
-test("migration preserves documents, numeric BSON types, text indexes and views",live,async()=>{
+test("migration preserves documents, numeric BSON types, text indexes and views",modern?{skip:"Cross-engine migration is exercised by the separate modern upgrade fixture."}:live,async()=>{
  const root=temp(),directory=path.join(root,"Old"),destination=path.join(root,"Encrypted");let db,stage="open legacy source";
  try{db=await B.open({...options(directory),storageEncryption:"auto"});await db.createCollection("items",{validator:{n:{$type:"int"}}});await db.collection("items").createIndex({title:"text"},{weights:{title:2},name:"title_text"});await db.collection("items").createIndex({n:1},{unique:true});
   const id=new B.ObjectId();await db.collection("items").insertOne({_id:id,n:new Int32(7),floating:new Double(7),big:Long.fromString("9223372036854775806"),title:"portable offline",rx:new BSONRegExp("Atik","i")});await db.createCollection("item_view",{viewOn:"items",pipeline:[{$match:{n:{$gte:1}}}]});await db.close();db=null;
@@ -90,8 +92,13 @@ test("full native mode refuses the stock engine or a partial prototype before cr
 
 test("rebuilt engine encrypts actual aggregation spill files",enabled&&!prototype?{timeout:240000}:{skip:"Requires the rebuilt engine; Linux extension has no temporary-file hooks."},async()=>{
  const root=temp(),directory=path.join(root,"Database");let db,cursor;
- try{db=await B.open(options(directory));for(let i=0;i<24;i++){const batch=[];for(let j=0;j<64;j++)batch.push({n:crypto.randomInt(1000000000),pad:crypto.randomBytes(110000).toString("base64")});await db.collection("spill").insertMany(batch);}
-  cursor=db.collection("spill").aggregate([{$sort:{n:1}}],{allowDiskUse:true,batchSize:1});assert.ok(await cursor.next());const folder=path.join(directory,"data/_tmp"),files=fs.readdirSync(folder).map(n=>path.join(folder,n)).filter(p=>fs.statSync(p).isFile());assert.ok(files.length>0,"The workload must actually spill, otherwise encryption was not exercised");for(const file of files)assert.ok(findMarker(file,Buffer.from("BSLAE001")),"Temporary spill must contain authenticated ciphertext");
+ try{db=await B.open(options(directory));for(let i=0;i<24;i++){const batch=[];for(let j=0;j<64;j++)batch.push({n:crypto.randomInt(1000000000),pad:"NATIVE_SPILL_SENTINEL_842416"+crypto.randomBytes(110000).toString("base64")});await db.collection("spill").insertMany(batch);}
+  cursor=db.collection("spill").aggregate([{$sort:{n:1}}],{allowDiskUse:true,batchSize:1});assert.ok(await cursor.next());
+  const folder=path.join(directory,"data/_tmp");
+  function spillFiles(dir){return fs.readdirSync(dir,{withFileTypes:true}).flatMap(entry=>{const file=path.join(dir,entry.name);return entry.isDirectory()?spillFiles(file):entry.isFile()&&!entry.name.startsWith("WiredTiger")&&fs.statSync(file).size>65536?[file]:[];});}
+  const files=modern?spillFiles(folder):fs.readdirSync(folder).map(n=>path.join(folder,n)).filter(p=>fs.statSync(p).isFile());
+  assert.ok(files.length>0,"The workload must actually spill, otherwise encryption was not exercised");
+  for(const file of files){assert.ok(findMarker(file,Buffer.from("BSLAE001")),"Temporary spill must contain authenticated ciphertext");assert.equal(findMarker(file,Buffer.from("NATIVE_SPILL_SENTINEL_842416")),false,"Spilled records must not be plaintext");}
  }finally{if(cursor)await cursor.close();if(db)await db.close();clean(root);}
 });
 
@@ -101,11 +108,11 @@ test("rebuilt engine prevents per-collection plaintext encryption overrides",ena
  }finally{if(db)await db.close();clean(root);}
 });
 
-test("final Windows single-file artifact starts without developer binary paths or npm packages",enabled&&!prototype&&process.env.BSONLITE_TEST_MODULE?{timeout:90000}:{skip:"Requires the final embedded Windows artifact."},()=>{
+test("final Windows single-file artifact starts without developer binary paths or npm packages",enabled&&!prototype&&embeddedArtifact?{timeout:90000}:{skip:"Requires the final embedded Windows artifact."},()=>{
  const root=temp();try{fs.copyFileSync(process.env.BSONLITE_TEST_MODULE,path.join(root,"BsonLite.cjs"));fs.writeFileSync(path.join(root,"app.cjs"),"const B=require('./BsonLite.cjs');(async()=>{const db=await B.connect();try{if(!db.info.security.storageEncryption.verified)throw Error('Native encryption not verified');await B.collection('items').insertOne({n:1});if(await B.collection('items').countDocuments()!==1)throw Error('Missing data');console.log('NATIVE_SINGLE_FILE_OK');}finally{await B.disconnect();}})().catch(e=>{console.error(e.code,e.message);process.exitCode=1;});");const result=spawnSync(process.execPath,["app.cjs"],{cwd:root,env:{...process.env,BSONLITE_DATA_HOME:managed},encoding:"utf8",timeout:85000});assert.equal(result.status,0,result.stderr+result.stdout);assert.match(result.stdout,/NATIVE_SINGLE_FILE_OK/);assert.equal(fs.existsSync(path.join(root,"node_modules")),false);}finally{clean(root);}
 });
 
-test("two standalone consumers safely share a fresh embedded engine cache",enabled&&!prototype&&process.env.BSONLITE_TEST_MODULE?{timeout:120000}:{skip:"Requires the final embedded Windows artifact."},async()=>{
+test("two standalone consumers safely share a fresh embedded engine cache",enabled&&!prototype&&embeddedArtifact?{timeout:120000}:{skip:"Requires the final embedded Windows artifact."},async()=>{
  const root=temp(),cache=fs.mkdtempSync(path.join(os.tmpdir(),"BsonLite shared private cache পরীক্ষা "));
  try{
   fs.copyFileSync(process.env.BSONLITE_TEST_MODULE,path.join(root,"BsonLite.cjs"));

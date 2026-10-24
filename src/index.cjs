@@ -184,6 +184,7 @@ module.exports = Object.freeze({
   restore: require("./backup.cjs").restore,
   recover: require("./recovery.cjs").recover,
   migrate: require("./migrate.cjs").createMigrator(open),
+  upgrade: require("./upgrade.cjs").createUpgrader(openNormalized),
   open: open, ObjectId: ObjectId, BSON: BSON, BsonLiteError: BsonLiteError,
   version: VERSION, engineVersion: ENGINE_VERSION, driverVersion: DRIVER_VERSION
 });

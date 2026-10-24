@@ -55,6 +55,12 @@ async function main() {
     nativeManifest=JSON.parse(fs.readFileSync(file,"utf8"));
     if(nativeManifest.windowsCodePage!=="UTF-8"||nativeManifest.minimumWindowsBuild!==profile.minimumWindowsBuild)throw new Error("The engine's UTF-8 Windows process manifest has not been prepared for this engine profile.");
     if(nativeManifest.windowsIntegration!=="passed")throw new Error("The Windows native integration checks have not passed. Use npm run build:preview for source review; production bundling is blocked.");
+    if (modern) {
+      const archive = path.join(root, "native/build/modern/BsonLite-modern-engine-source.tar.gz");
+      if (!fs.existsSync(archive) || !/^[a-f0-9]{64}$/.test(nativeManifest.sourceArchiveSha256 || "") ||
+          crypto.createHash("sha256").update(fs.readFileSync(archive)).digest("hex") !== nativeManifest.sourceArchiveSha256)
+        throw new Error("The matching modified modern engine source archive is missing or has changed.");
+    }
   }
   const bytes = sourceOnly?Buffer.alloc(0):fs.readFileSync(binary);
   const sha256 = crypto.createHash("sha256").update(bytes).digest("hex");
