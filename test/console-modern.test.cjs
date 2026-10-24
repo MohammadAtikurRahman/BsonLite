@@ -6,6 +6,27 @@ const { once } = require("node:events");
 const consoleRepo = process.env.BSONLITE_CONSOLE_REPO;
 const live = consoleRepo ? {} : { skip: "Set BSONLITE_CONSOLE_REPO to the pinned Console source with dependencies installed." };
 
+test("the bundled Console adapter preserves the core's concurrent startup contract", async t => {
+  const modern = require("../dist-modern/BsonLite.cjs");
+  const { createSharedAPI } = require("../src/shared.cjs");
+  const root = fs.mkdtempSync(path.join(os.tmpdir(), "bsl-shared-console-contract-"));
+  let resolve, closed = false;
+  const ready = new Promise(yes => { resolve = yes; });
+  const database = { name: "sharedcontract", info: { port: 0, security: { storageEncryption: { method: "wiredtiger-native", verified: true } } },
+    get closed() { return closed; }, async close() { closed = true; }, async ping() { return { ok: 1 }; } };
+  const core = { ...createSharedAPI(() => ready), BSON: modern.BSON, ObjectId: modern.ObjectId, BsonLiteError: modern.BsonLiteError };
+  const sdk = require("../src/console-addon.cjs")(core);
+  t.after(async () => { await sdk.stop(); fs.rmSync(root, { recursive: true, force: true }); });
+  const first = sdk.start({ name: database.name, directory: root, console: false, silent: true });
+  const again = sdk.start();
+  assert.equal(first, again); assert.equal(sdk.status().state, "starting");
+  resolve(database);
+  const connected = await first; assert.equal(await again, connected);
+  assert.equal(await sdk.start(database.name), connected);
+  await assert.rejects(sdk.start("conflicting"), error => error.code === "BSONLITE_CONFIG_CONFLICT");
+  await sdk.stop(); assert.equal(sdk.status().connected, false);
+});
+
 test("existing Console and CLI round-trip BSON 6/7 across the modern SDK bridge", live, async t => {
   const modern = require("../dist-modern/BsonLite.cjs"), { BSON, ObjectId } = modern;
   const { Connection } = require(path.join(consoleRepo, "src/connection.cjs"));

@@ -69,7 +69,7 @@ npm run test:modern
 ```
 
 For the cross-version Console/CLI test, check out BsonLite Console at commit
-`f118504cc89f457f4039c6a8757740e86e522331`, run `npm ci --ignore-scripts`
+`d03a5898a976280833653117b9a071d6bd4097ef`, run `npm ci --ignore-scripts`
 there, and set `BSONLITE_CONSOLE_REPO` to that checkout before `test:modern`.
 The workflow runs this test with the existing Console's BSON 6 client and the
 modern SDK's BSON 7 driver through the authenticated EJSON bridge.

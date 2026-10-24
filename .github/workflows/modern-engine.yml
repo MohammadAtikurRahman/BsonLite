@@ -25,7 +25,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           repository: MohammadAtikurRahman/BsonLite-Console
-          ref: f118504cc89f457f4039c6a8757740e86e522331
+          ref: d03a5898a976280833653117b9a071d6bd4097ef
           path: native/build/console-compat
           persist-credentials: false
       - run: npm ci --ignore-scripts
@@ -103,7 +103,7 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           repository: MohammadAtikurRahman/BsonLite-Console
-          ref: f118504cc89f457f4039c6a8757740e86e522331
+          ref: d03a5898a976280833653117b9a071d6bd4097ef
           path: native/build/console-compat
           persist-credentials: false
       - run: npm ci --ignore-scripts

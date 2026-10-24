@@ -6377,7 +6377,7 @@ var BsonLiteConsoleAddon = (() => {
       }
       function enhanceSDK(core, settings = {}) {
         if (core.consoleVersion) return core;
-        const entries = /* @__PURE__ */ new WeakMap(), starting = /* @__PURE__ */ new Set();
+        const entries = /* @__PURE__ */ new WeakMap(), startCalls = /* @__PURE__ */ new WeakMap(), starting = /* @__PURE__ */ new Set();
         let shared = null, stopping = null;
         function inputOptions(input) {
           if (input && typeof input === "object" && Object.hasOwn(input, "console")) {
@@ -6432,14 +6432,27 @@ var BsonLiteConsoleAddon = (() => {
         }
         function start(input) {
           if (stopping) return Promise.reject(new core.BsonLiteError("BSONLITE_STOPPING", "Wait for BsonLite.stop() before starting again."));
-          const pending = (async () => {
-            const db = await core.connect(inputOptions(input));
-            const record = await attach(db, enabled(input));
+          let base, wanted;
+          try {
+            base = Promise.resolve(core.connect(inputOptions(input)));
+            wanted = enabled(input);
+          } catch (error) {
+            return Promise.reject(error);
+          }
+          const existing = startCalls.get(base);
+          if (existing) {
+            if (wanted !== void 0 && wanted !== existing.wanted) return Promise.reject(new core.BsonLiteError("BSONLITE_CONFIG_CONFLICT", "Stop the database before changing automatic Console access."));
+            return existing.promise;
+          }
+          const pending = base.then(async (db) => {
+            const record = await attach(db, wanted);
             shared = record;
             return record.proxy;
-          })();
+          });
           starting.add(pending);
-          return pending.finally(() => starting.delete(pending));
+          const promise = pending.finally(() => starting.delete(pending));
+          startCalls.set(base, { wanted: wanted !== false, promise });
+          return promise;
         }
         async function open(input) {
           return (await attach(await core.open(inputOptions(input)), enabled(input))).proxy;
