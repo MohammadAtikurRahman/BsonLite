@@ -378,7 +378,13 @@ test("starter starts the HTTP health server and closes it with the database", pr
       await exited;await eventually(()=>!fs.existsSync(path.join(root,"Database","instance.lock"))&&!isAlive(owner.supervisorPid)&&!isAlive(owner.enginePid));
     } else {assert.equal(await exited,0);assert.match(output,/\[BsonLite\] Stopped/);}
     assert.equal(fs.existsSync(path.join(root,"Database","instance.lock")),false);
-  } finally {if(child&&child.exitCode===null&&child.signalCode===null)child.kill("SIGKILL");fs.rmSync(root,{recursive:true,force:true});fs.rmSync(managed,{recursive:true,force:true});}
+  } finally {
+    if(child&&child.exitCode===null&&child.signalCode===null)child.kill("SIGKILL");
+    // The assertions above still require our child, supervisor and engine to
+    // exit. Windows can release their directory handles slightly later.
+    fs.rmSync(root,{recursive:true,force:true,maxRetries:8,retryDelay:100});
+    fs.rmSync(managed,{recursive:true,force:true,maxRetries:8,retryDelay:100});
+  }
 });
 test("explicit legacy auto mode discovers the persisted name and retains TLS", live, async () => {
   const directory=temp();let db;
