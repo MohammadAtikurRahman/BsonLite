@@ -1,8 +1,11 @@
 [CmdletBinding()]
-param([int]$Jobs = 2)
+param([int]$Jobs = 2, [string]$BazelRoot = (Join-Path $env:SystemDrive 'b'))
 $ErrorActionPreference = 'Stop'
 if ($env:OS -ne 'Windows_NT') { throw 'The modern customer engine requires a Windows x64 builder.' }
 $root = Split-Path (Split-Path $PSScriptRoot -Parent) -Parent
+$BazelRoot = [IO.Path]::GetFullPath($BazelRoot)
+if ($BazelRoot.Length -gt 20) { throw 'Use a short writable BazelRoot, for example C:\b or D:\b, to stay within MSVC object-file path limits.' }
+New-Item -ItemType Directory -Force $BazelRoot | Out-Null
 $lock = Get-Content (Join-Path $PSScriptRoot 'deps.lock.json') -Raw | ConvertFrom-Json
 $work = Join-Path $root 'native/build/modern/dependencies'
 function Checked([string]$Program, [string[]]$Arguments) {
@@ -38,6 +41,7 @@ try {
     # not inherit our CLI flags, so installed toolchain overrides must also be
     # present in the shared rc file before any wrapper/bootstrap is started.
     @(
+        ('startup --output_user_root="' + $BazelRoot.Replace('\','/') + '"'),
         'common --config=local',
         ('common --disk_cache="' + (Join-Path $root 'native/build/modern/bazel-cache').Replace('\','/') + '"'),
         ('common:windows --repo_env=BAZEL_VS="' + $vs.Replace('\','/') + '"'),
@@ -49,7 +53,7 @@ try {
     ) | Set-Content '.bazelrc.local' -Encoding utf8NoBOM
     Checked 'python' @('buildscripts/install_bazel.py')
     $bazel = Join-Path $env:USERPROFILE '.local/bin/bazel.exe'
-    $arguments = @('build', 'install-mongod', '--config=local', '--config=opt', '--build_enterprise=False',
+    $arguments = @('build', 'install-mongod', '--config=local', '--config=opt', '--build_enterprise=False', '--verbose_failures',
         '--js_engine=none', '--debug_symbols=False', '--separate_debug=False', '--dbg_level=0',
         '--compiler_type=msvc', '--allocator=system', '--features=static_link_msvcrt',
         '--features=-multithreaded', '--features=-single_threaded', ('--jobs=' + $Jobs),
@@ -58,6 +62,7 @@ try {
         ('--repo_env=BAZEL_VC_FULL_VERSION=' + $compiler.Name), ('--repo_env=BAZEL_WINSDK_FULL_VERSION=' + $sdk.Name))
     $preflight = @('build', '//src/mongo/db/storage:encryption_hooks_with_debug',
         '//src/mongo/db/storage/wiredtiger:storage_wiredtiger_core_with_debug', '//src/mongo/db:mongod_main_with_debug',
+        '//src/mongo/db/change_stream_pre_images_truncate_markers_sampling_strategy:change_stream_pre_images_truncate_markers_sampling_strategy_with_debug',
         '--output_groups=compilation_outputs') + $arguments[2..($arguments.Length - 1)]
     Checked $bazel $preflight
     Checked $bazel $arguments

@@ -28,6 +28,12 @@ Requirements: Windows x64, PowerShell 7, Python 3.13, Node.js 24, Visual Studio
 local execution, Community-only components, a static CRT and Windows SChannel.
 No Python 2 or VC90 installation is used for this build path.
 
+The builder uses a short Bazel output root (`C:\b` on a normal Windows install)
+because MSVC still limits generated object-file paths. Override it with
+`-BazelRoot D:\b` when needed; the directory must be short and writable. The
+preflight compiles the longest-path server target as well as the patched C++
+libraries before starting the full build.
+
 ```powershell
 ./native/modern/build_windows.ps1
 npm ci
