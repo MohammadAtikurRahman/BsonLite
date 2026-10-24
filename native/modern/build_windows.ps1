@@ -34,6 +34,18 @@ Checked 'python' @((Join-Path $PSScriptRoot 'patch_mongo.py'), $mongo,
     '--sodium-include', (Join-Path $sodium 'src/libsodium/include'), '--sodium-library', $library.FullName)
 Push-Location $mongo
 try {
+    # The upstream wrapper starts its own Bazel bootstrap invocations. They do
+    # not inherit our CLI flags, so installed toolchain overrides must also be
+    # present in the shared rc file before any wrapper/bootstrap is started.
+    @(
+        'common --config=local',
+        ('common:windows --repo_env=BAZEL_VS="' + $vs.Replace('\','/') + '"'),
+        ('common:windows --repo_env=BAZEL_VC="' + (Join-Path $vs 'VC').Replace('\','/') + '"'),
+        ('common:windows --repo_env=BAZEL_VC_FULL_VERSION=' + $compiler.Name),
+        ('common:windows --repo_env=BAZEL_WINSDK_FULL_VERSION=' + $sdk.Name),
+        ('common --define=MONGO_VERSION=' + $lock.mongo.version),
+        ('common --define=MONGO_GIT_HASH=' + $lock.mongo.commit)
+    ) | Set-Content '.bazelrc.local' -Encoding utf8NoBOM
     Checked 'python' @('buildscripts/install_bazel.py')
     $bazel = Join-Path $env:USERPROFILE '.local/bin/bazel.exe'
     $arguments = @('build', 'install-mongod', '--config=local', '--config=opt', '--build_enterprise=False',
