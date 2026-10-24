@@ -89,19 +89,33 @@ test("actual previous encrypted SDK upgrades to 9.0 without changing BSON types 
     await source.collection("items").insertOne({ _id: id, code: "a", n: previous.BSON.Long.fromString("9007199254740993"),
       decimal: previous.BSON.Decimal128.fromString("123.450"), bytes: new previous.BSON.Binary(Buffer.from([0, 255, 42])),
       floating: new previous.BSON.Double(7), integer: new previous.BSON.Int32(7), rx: new previous.BSON.BSONRegExp("^Atik", "i") });
+    // Exercise both document-count and byte-bounded batches through the actual
+    // old/new drivers, in addition to the scalar BSON and view checks below.
+    await source.collection("items").insertMany(Array.from({ length: 70 }, (_, i) => ({
+      code: "small-" + i, n: previous.BSON.Long.fromString(String(9007199254740993n + BigInt(i)))
+    })));
+    await source.collection("items").insertMany(Array.from({ length: 70 }, (_, i) => ({
+      code: "large-" + i, n: previous.BSON.Long.fromString(String(9007199254740993n + BigInt(i))),
+      payload: new previous.BSON.Binary(Buffer.alloc(80 * 1024, i))
+    })));
     await source.createCollection("item_view", { viewOn: "items", pipeline: [{ $match: { code: "a" } }] });
     await source.close(); source = null;
     const result = await BsonLite.upgrade({ sourceSDK: previous, sourceDirectory, directory, binaryPath, nativeManifest });
-    assert.equal(result.originalPreserved, true); assert.equal(result.collections[0].documents, 1);
+    assert.equal(result.originalPreserved, true); assert.equal(result.collections[0].documents, 141);
     destination = await BsonLite.open({ directory, name: "upgraded", binaryPath, nativeManifest, console: false, silent: true });
     const doc = await destination.collection("items").findOne({ _id: new BsonLite.ObjectId(id.toHexString()) }, { promoteValues: false, promoteLongs: false, bsonRegExp: true });
     assert.equal(doc.n.toString(), "9007199254740993"); assert.equal(doc.decimal.toString(), "123.450");
     assert.equal(doc.floating._bsontype, "Double"); assert.equal(doc.integer._bsontype, "Int32");
     assert.equal(doc.rx._bsontype, "BSONRegExp"); assert.equal(Buffer.from(doc.bytes.buffer).toString("hex"), "00ff2a");
+    assert.equal(await destination.collection("items").countDocuments({}), 141);
+    const last = await destination.collection("items").findOne({ code: "large-69" }, { promoteLongs: false });
+    assert.equal(last.n.toString(), "9007199254741062");
+    assert.deepEqual(Buffer.from(last.payload.buffer), Buffer.alloc(80 * 1024, 69));
     assert.equal(await destination.collection("item_view").countDocuments({}), 1);
     await assert.rejects(destination.collection("items").insertOne({ code: "a", n: BsonLite.BSON.Long.fromString("1") }), e => e.code === 11000);
     await destination.close(); destination = null;
     source = await previous.open({ directory: sourceDirectory, name: "upgraded", console: false, silent: true });
+    assert.equal(await source.collection("items").countDocuments({}), 141);
     assert.equal((await source.collection("items").findOne({ _id: id }, { promoteLongs: false })).n.toString(), "9007199254740993");
   } finally {
     if (destination) await destination.close(); if (source) await source.close();
