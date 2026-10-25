@@ -3,7 +3,7 @@ const test = require("node:test"), assert = require("node:assert/strict");
 const fs = require("node:fs"), os = require("node:os"), path = require("node:path");
 const { spawn } = require("node:child_process");
 const { once } = require("node:events");
-const consoleRepo = process.env.BSONLITE_CONSOLE_REPO;
+const consoleRepo = process.env.BSONLITE_CONSOLE_REPO || path.resolve(__dirname, "../native/modern/console-compat");
 const live = consoleRepo ? {} : { skip: "Set BSONLITE_CONSOLE_REPO to the pinned Console source with dependencies installed." };
 
 test("the bundled Console adapter preserves the core's concurrent startup contract", async t => {

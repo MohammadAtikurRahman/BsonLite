@@ -39,15 +39,13 @@ libraries before starting the full build.
 npm ci
 npm run build:modern:preview
 
-# Use a new checkout folder; run these commands once.
-git clone https://github.com/MohammadAtikurRahman/BsonLite-Console.git native/build/console-compat
-git -C native/build/console-compat checkout d03a5898a976280833653117b9a071d6bd4097ef
-npm --prefix native/build/console-compat ci --ignore-scripts
+node native/modern/console-compat/verify.cjs
+npm --prefix native/modern/console-compat ci --ignore-scripts
 python native/modern/prepare_legacy.py --work native/build/modern/legacy-sdk
 
 $env:BSONLITE_MODERN_BINARY = "$PWD/assets/modern-win32-x64/mongod.exe"
 $env:BSONLITE_MODERN_MANIFEST = "$PWD/assets/modern-win32-x64/native-engine.json"
-$env:BSONLITE_CONSOLE_REPO = "$PWD/native/build/console-compat"
+$env:BSONLITE_CONSOLE_REPO = "$PWD/native/modern/console-compat"
 $env:BSONLITE_LEGACY_MODULE = "$PWD/native/build/modern/legacy-sdk/package"
 npm run test:modern-integration
 ```
@@ -86,12 +84,17 @@ making the package available, including inputs changed during preparation.
 ```sh
 npm ci
 npm run build:modern:preview
+node native/modern/console-compat/verify.cjs
+npm --prefix native/modern/console-compat ci --ignore-scripts
 npm run test:modern
 ```
 
-For the cross-version Console/CLI test, check out BsonLite Console at commit
-`d03a5898a976280833653117b9a071d6bd4097ef`, run `npm ci --ignore-scripts`
-there, and set `BSONLITE_CONSOLE_REPO` to that checkout before `test:modern`.
+For the cross-version Console/CLI test, run `node native/modern/console-compat/verify.cjs`
+and `npm --prefix native/modern/console-compat ci --ignore-scripts` first. The
+checked-in fixture preserves the real CLI and connection/query files from
+Console commit `d03a5898a976280833653117b9a071d6bd4097ef`, with its MIT license
+and per-file hashes. It avoids cross-repository credentials and is the default
+test client; `BSONLITE_CONSOLE_REPO` can select another explicit checkout.
 The workflow runs this test with the existing Console's BSON 6 client and the
 modern SDK's BSON 7 driver through the authenticated EJSON bridge.
 

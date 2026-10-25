@@ -1,0 +1,11 @@
+{
+  "name": "bsonlite-console-compatibility-fixture",
+  "version": "0.2.0",
+  "private": true,
+  "description": "Pinned CLI compatibility fixture for BsonLite engine validation.",
+  "license": "MIT",
+  "dependencies": {
+    "acorn": "8.19.0",
+    "mongodb": "6.16.0"
+  }
+}

@@ -21,7 +21,7 @@ test.after(() => {
 });
 
 test("existing terminal CLI auto-discovers and queries the actual modern encrypted SDK", live, async () => {
-  const BsonLite = require(modulePath), consoleRepo = process.env.BSONLITE_CONSOLE_REPO;
+  const BsonLite = require(modulePath), consoleRepo = process.env.BSONLITE_CONSOLE_REPO || path.resolve(__dirname, "../native/modern/console-compat");
   assert(consoleRepo && fs.existsSync(consoleRepo), "The pinned Console source is required");
   const root = fs.mkdtempSync(path.join(os.tmpdir(), "bsonlite-modern-cli-live-"));
   try {

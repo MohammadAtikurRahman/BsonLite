@@ -1,0 +1,14 @@
+{
+  "version": 1,
+  "repository": "MohammadAtikurRahman/BsonLite-Console",
+  "commit": "d03a5898a976280833653117b9a071d6bd4097ef",
+  "files": {
+    "bin/bsonlite.cjs": "dffcc3435a9d7309573025c016496215fe49d4691438148459b3f44a61b88fde",
+    "src/connection.cjs": "e22691badac427157115a39a37e36b901a3a224adec1e74776f1c65634ac7879",
+    "src/discovery.cjs": "adbba46351084a03bc20b9788dd6262975488fe13a1e31e53f1ff73c88e6b860",
+    "src/discovery-path.cjs": "c10d6c914b531de0d54a8187a898437ed9922c7bffbd1ba0ac86e989f2aca084",
+    "src/execute.cjs": "8b06e0668b39d4adaef7b2dd666f6aa57211dffa728ae9489f819c0b781dce79",
+    "src/query.cjs": "70d415748f98246b1b91e006f04ae514cc754ea041a6ee0e3eaea11713f3d919",
+    "LICENSE": "f4c2dac8359872f1b463980f8f4490c606e112456395e7635eb34fa0be982ea8"
+  }
+}

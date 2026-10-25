@@ -22,17 +22,12 @@ jobs:
       - run: npm ci
       - run: npm test
       - run: npm run build:modern:preview
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
-        with:
-          repository: MohammadAtikurRahman/BsonLite-Console
-          ref: d03a5898a976280833653117b9a071d6bd4097ef
-          path: native/build/console-compat
-          persist-credentials: false
+      - run: node native/modern/console-compat/verify.cjs
       - run: npm ci --ignore-scripts
-        working-directory: native/build/console-compat
+        working-directory: native/modern/console-compat
       - run: npm run test:modern
         env:
-          BSONLITE_CONSOLE_REPO: ${{ github.workspace }}/native/build/console-compat
+          BSONLITE_CONSOLE_REPO: ${{ github.workspace }}/native/modern/console-compat
   storage:
     needs: source
     runs-on: ubuntu-24.04
@@ -100,14 +95,9 @@ jobs:
           key: modern-native-v143-static-v1-${{ hashFiles('native/modern/deps.lock.json', 'native/modern/patch_mongo.py', 'native/modern/hooks.inc', 'native/modern/build_windows.ps1', 'native/modern/enable_utf8.py', 'native/modern/package_source.py', 'native/src/**', 'scripts/enable_windows_utf8.py') }}
       - run: npm ci
       - run: npm run build:modern:preview
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
-        with:
-          repository: MohammadAtikurRahman/BsonLite-Console
-          ref: d03a5898a976280833653117b9a071d6bd4097ef
-          path: native/build/console-compat
-          persist-credentials: false
+      - run: node native/modern/console-compat/verify.cjs
       - run: npm ci --ignore-scripts
-        working-directory: native/build/console-compat
+        working-directory: native/modern/console-compat
       - run: python native/modern/prepare_legacy.py --work native/build/modern/legacy-sdk
       - name: Full native storage, journal, spill, key and backup suites
         shell: pwsh
@@ -122,7 +112,7 @@ jobs:
         run: |
           $env:BSONLITE_MODERN_BINARY = Join-Path $PWD 'assets/modern-win32-x64/mongod.exe'
           $env:BSONLITE_MODERN_MANIFEST = Join-Path $PWD 'assets/modern-win32-x64/native-engine.json'
-          $env:BSONLITE_CONSOLE_REPO = Join-Path $PWD 'native/build/console-compat'
+          $env:BSONLITE_CONSOLE_REPO = Join-Path $PWD 'native/modern/console-compat'
           $env:BSONLITE_LEGACY_MODULE = Join-Path $PWD 'native/build/modern/legacy-sdk/package'
           node --test --test-concurrency=1 --test-reporter=junit --test-reporter-destination=native/build/modern/runtime.xml test/modern-integration.test.cjs
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
