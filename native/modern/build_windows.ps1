@@ -70,6 +70,9 @@ try {
     # directory can exist even when it does not contain this target's binary.
     $enginePath = Join-Path $mongo 'bazel-bin/install-mongod/bin/mongod.exe'
     $engine = Get-Item -LiteralPath $enginePath -ErrorAction Stop
+    # Bazel installs a chain of symlinks. On Windows their FileInfo.Length is
+    # zero; inspect and copy the final executable rather than the link itself.
+    if ($engine.LinkTarget) { $engine = $engine.ResolveLinkTarget($true) }
     if ($engine.PSIsContainer -or $engine.Length -le 1MB) { throw "The install-mongod output is not a usable engine: $enginePath" }
     $output = Join-Path $root 'assets/modern-win32-x64'
     New-Item -ItemType Directory -Force $output | Out-Null
