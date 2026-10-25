@@ -66,8 +66,11 @@ try {
         '--output_groups=compilation_outputs') + $arguments[2..($arguments.Length - 1)]
     Checked $bazel $preflight
     Checked $bazel $arguments
-    $engine = Get-ChildItem 'bazel-bin/install' -Recurse -Filter mongod.exe | Where-Object { $_.Length -gt 1MB } | Select-Object -First 1
-    if (-not $engine) { throw 'Bazel did not produce the engine.' }
+    # install-mongod has its own output directory. The old generic install/
+    # directory can exist even when it does not contain this target's binary.
+    $enginePath = Join-Path $mongo 'bazel-bin/install-mongod/bin/mongod.exe'
+    $engine = Get-Item -LiteralPath $enginePath -ErrorAction Stop
+    if ($engine.PSIsContainer -or $engine.Length -le 1MB) { throw "The install-mongod output is not a usable engine: $enginePath" }
     $output = Join-Path $root 'assets/modern-win32-x64'
     New-Item -ItemType Directory -Force $output | Out-Null
     Copy-Item $engine.FullName (Join-Path $output 'mongod.exe')
