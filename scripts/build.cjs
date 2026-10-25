@@ -14,6 +14,12 @@ async function main() {
   const profile = Object.values(profiles).find(item => item.id === profileName);
   if (!profile) throw new Error("Unknown engine build profile: " + profileName);
   const ENGINE_VERSION = profile.version, VERSION = profile.sdkVersion;
+  let installedDriver;
+  try { installedDriver = require(profile.driverPackage + "/package.json"); }
+  catch (_) { throw new Error("The selected database driver is missing. Run npm ci before building."); }
+  if (installedDriver.name !== "mongodb" || installedDriver.version !== profile.driverVersion) {
+    throw new Error("Installed database driver does not match " + profile.driverVersion + ". Run npm ci before building.");
+  }
   const modern = profile.id === "modern";
   if (modern && (process.versions.node.split(".").map(Number)[0] < 20 ||
       (process.versions.node.startsWith("20.") && Number(process.versions.node.split(".")[1]) < 19))) {
