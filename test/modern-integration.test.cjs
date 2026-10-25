@@ -1,6 +1,7 @@
 "use strict";
 const test = require("node:test"), assert = require("node:assert/strict");
 const fs = require("node:fs"), os = require("node:os"), path = require("node:path");
+const { isAlive } = require("../src/util.cjs");
 const binaryPath = process.env.BSONLITE_MODERN_BINARY;
 const nativeManifest = process.env.BSONLITE_MODERN_MANIFEST;
 const modulePath = process.env.BSONLITE_MODERN_MODULE || path.resolve(__dirname, "../dist-modern/BsonLite.cjs");
@@ -9,12 +10,13 @@ const live = enabled ? {} : { skip: "Requires the actual rebuilt encrypted Windo
 const managed = enabled ? fs.mkdtempSync(path.join(os.tmpdir(), "bsonlite-modern-private-পরীক্ষা-")) : null;
 const previousHome = process.env.BSONLITE_DATA_HOME;
 const previousConsoleHome = process.env.BSONLITE_CONSOLE_HOME;
+const clean = directory => fs.rmSync(directory, { recursive: true, force: true, maxRetries: 8, retryDelay: 100 });
 if (managed) process.env.BSONLITE_DATA_HOME = managed;
 if (managed) process.env.BSONLITE_CONSOLE_HOME = path.join(managed, "console");
 test.after(() => {
   if (previousHome === undefined) delete process.env.BSONLITE_DATA_HOME; else process.env.BSONLITE_DATA_HOME = previousHome;
   if (previousConsoleHome === undefined) delete process.env.BSONLITE_CONSOLE_HOME; else process.env.BSONLITE_CONSOLE_HOME = previousConsoleHome;
-  if (managed) fs.rmSync(managed, { recursive: true, force: true });
+  if (managed) clean(managed);
 });
 
 test("existing terminal CLI auto-discovers and queries the actual modern encrypted SDK", live, async () => {
@@ -31,7 +33,7 @@ test("existing terminal CLI auto-discovers and queries the actual modern encrypt
     assert.equal(require(path.join(consoleRepo, "src/query.cjs")).fromJSON(result.stdout).acknowledged, true);
     assert.equal((await db.collection("records").findOne({}, { promoteLongs: false })).n.toString(), "9007199254740993");
   } finally {
-    await BsonLite.disconnect(); fs.rmSync(root, { recursive: true, force: true });
+    await BsonLite.disconnect(); clean(root);
   }
 });
 
@@ -66,10 +68,34 @@ test("modern encrypted engine preserves BSON, indexes, aggregation and records a
     assert.equal(await db.collection("records").countDocuments({}), 2);
     assert.equal((await db.collection("records").findOne({ _id: id })).message, "BSL_MODERN_PRIVATE_SENTINEL_4096");
     await assert.rejects(db.collection("records").insertOne({ order: 1 }), e => e.code === 11000);
+    const collection = db.collection("records");
+    assert.equal(collection.writeConcern.w, 1);
+    assert.equal(collection.writeConcern.j, true);
+    const committed = await collection.insertOne({ order: 3, message: "journaled-before-forced-engine-exit",
+      value: BsonLite.BSON.Long.fromString("9007199254740995") });
+    assert.equal(committed.acknowledged, true);
+    // Kill only the engine created by this fixture, without a clean shutdown.
+    // A journal-acknowledged write must survive actual WiredTiger recovery.
+    const { enginePid, supervisorPid } = db.info;
+    assert(Number.isSafeInteger(enginePid) && enginePid > 0 && isAlive(enginePid));
+    process.kill(enginePid, "SIGKILL");
+    const deadline = Date.now() + 25000;
+    while (Date.now() < deadline && (isAlive(enginePid) || isAlive(supervisorPid) || fs.existsSync(path.join(options.directory, "instance.lock"))))
+      await new Promise(resolve => setTimeout(resolve, 150));
+    assert.equal(isAlive(enginePid), false);
+    assert.equal(isAlive(supervisorPid), false);
+    assert.equal(fs.existsSync(path.join(options.directory, "instance.lock")), false);
+    await db.close(); db = null;
+    db = await BsonLite.open(options);
+    assert.equal(db.info.security.storageEncryption.verified, true);
+    assert.equal(await db.collection("records").countDocuments({}), 3);
+    const recovered = await db.collection("records").findOne({ _id: committed.insertedId }, { promoteLongs: false });
+    assert.equal(recovered.message, "journaled-before-forced-engine-exit");
+    assert.equal(recovered.value.toString(), "9007199254740995");
   } finally {
     if (db) await db.close();
     // Test records only. Keep a failed live store for diagnosis on CI failure.
-    if (!db || db.closed) fs.rmSync(root, { recursive: true, force: true });
+    if (!db || db.closed) clean(root);
   }
 });
 
@@ -119,6 +145,6 @@ test("actual previous encrypted SDK upgrades to 9.0 without changing BSON types 
     assert.equal((await source.collection("items").findOne({ _id: id }, { promoteLongs: false })).n.toString(), "9007199254740993");
   } finally {
     if (destination) await destination.close(); if (source) await source.close();
-    fs.rmSync(root, { recursive: true, force: true });
+    clean(root);
   }
 });
