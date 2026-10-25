@@ -1,6 +1,52 @@
 # BsonLite validation
 
-The current shared SDK source passed the complete legacy-engine Windows workflow on **2026-10-25**, including the actual encrypted engine, source SDK, final single-file SDK and earlier-format compatibility tests. This is backward-compatibility evidence for the existing 4.0.28 profile, not validation of the experimental 9.0.4 engine.
+## Current default profile: 9.0.4
+
+The default core is now **0.7.0-alpha.0 / engine 9.0.4 / driver 7.7.0**.
+This changes the actual source dependency and selected engine profile, rather
+than only changing a version label. Ordinary `npm run build` produces the
+native encrypted SDK in `dist/BsonLite.cjs`. Ordinary `npm run build:preview`
+selects the same profile but explicitly reports that no native engine is
+included. An installed driver version mismatch stops the build and requests
+`npm ci`.
+
+Tested code: `5ab0017339173049b25e16b3a404a16d3d664f3d`, on **2026-10-25**.
+The [modern workflow](https://github.com/MohammadAtikurRahman/BsonLite/actions/runs/40186712304)
+passed its source, Windows and compiled WiredTiger storage jobs. The Windows
+job builds with the ordinary default command and runs the final native suite
+against `dist/BsonLite.cjs`; the compatibility copy under `dist-modern/` uses
+the same SDK bytes. The resulting npm prerelease was prepared, packed,
+installed and checksum/import verified on Windows.
+
+| Required modern gate | Passed | Required skips/failures |
+| --- | ---: | ---: |
+| Actual source/native engine | 7 | 0 |
+| Runtime, encrypted legacy migration and existing CLI | 3 | 0 |
+| Default final embedded SDK | 9 | 0 |
+
+These groups overlap. Source tests also verify the real default driver and
+engine versions, reject an old-format store without changing its records,
+and exercise the migration and CLI bridge. The separate storage job passed
+the pinned WiredTiger write/reopen, ciphertext, wrong-key and tamper probes.
+The explicit legacy profile remains available for compatibility and logical
+migration; it is not the default.
+
+Validated current artifacts (GitHub-reported ZIP digests):
+
+- [Default native SDK and matching source](https://github.com/MohammadAtikurRahman/BsonLite/actions/runs/40186712304/artifacts/12596299460): `e7a24ac6f3aa399667df42e165b455b0eefa6da2c530e52cc5724f6411ca010a`.
+- [Prepared npm prerelease](https://github.com/MohammadAtikurRahman/BsonLite/actions/runs/40186712304/artifacts/12596169663): `4af05fcd0ebd138a3491e0fef013d032c606ffdb05f2d515d51674397c2441df`.
+
+The preceding default-profile artifact from commit `17b68fa` was also
+downloaded and independently checked: SDK/source/report digests matched,
+the primary and compatibility SDK copies were identical, and BsonLite-owned
+guides in the corresponding-source archive used English names and text.
+The final code commit above adds only the installed-driver build guard.
+Core, SDK and Console install/publish guides now use English filenames and
+instructions. No npm version was published by these validation workflows.
+
+## Historical legacy baseline
+
+The shared SDK source at the following earlier commit passed the complete legacy-engine Windows workflow on **2026-10-25**, including the actual encrypted engine, source SDK, final single-file SDK and earlier-format compatibility tests. This is backward-compatibility evidence for the existing 4.0.28 profile, not validation of the experimental 9.0.4 engine.
 
 - Tested code commit: `696be4a7d3fc9e5105ab0bee1352b2e72ebb4f06`.
 - Successful run: https://github.com/MohammadAtikurRahman/BsonLite/actions/runs/40179340903.
