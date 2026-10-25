@@ -2,6 +2,7 @@
 const test = require("node:test"), assert = require("node:assert/strict");
 const fs = require("node:fs"), os = require("node:os"), path = require("node:path");
 const { isAlive } = require("../src/util.cjs");
+const { MongoClient } = require("mongodb-modern");
 const binaryPath = process.env.BSONLITE_MODERN_BINARY;
 const nativeManifest = process.env.BSONLITE_MODERN_MANIFEST;
 const modulePath = process.env.BSONLITE_MODERN_MODULE || path.resolve(__dirname, "../dist-modern/BsonLite.cjs");
@@ -53,6 +54,22 @@ test("modern encrypted engine preserves BSON, indexes, aggregation and records a
     await rows.createIndex({ order: 1 }, { unique: true });
     const item = await rows.findOne({ _id: id }, { promoteLongs: false });
     assert.equal(item.value.toString(), "9007199254740993");
+    await assert.rejects(BsonLite.open(options), e => e.code === "BSONLITE_DATABASE_IN_USE");
+    const clientOptions = rows.client.options;
+    const uri = "mongodb://127.0.0.1:" + db.info.port;
+    const connection = { directConnection: true, serverSelectionTimeoutMS: 1500, connectTimeoutMS: 750 };
+    for (const tls of [{}, { tls: true, tlsCAFile: clientOptions.tlsCAFile }]) {
+      const untrusted = new MongoClient(uri, { ...connection, ...tls });
+      try { await assert.rejects(untrusted.connect()); } finally { await untrusted.close(); }
+    }
+    const unauthenticated = new MongoClient(uri, { ...connection, tls: true, tlsCAFile: clientOptions.tlsCAFile,
+      tlsCertificateKeyFile: clientOptions.tlsCertificateKeyFile });
+    try {
+      await unauthenticated.connect();
+      await assert.rejects(unauthenticated.db("modern").collection("records").findOne({}), e => e.code === 13);
+    } finally { await unauthenticated.close(); }
+    await assert.rejects(rows.client.db("admin").command({ usersInfo: 1 }), e => e.code === 13);
+    const oldAuth = { username: clientOptions.credentials.username, password: clientOptions.credentials.password };
     const window = await rows.aggregate([{ $setWindowFields: { sortBy: { order: 1 }, output: { position: { $documentNumber: {} } } } }]).toArray();
     assert.deepEqual(window.map(x => x.position), [1, 2]);
     await db.close(); db = null;
@@ -67,6 +84,12 @@ test("modern encrypted engine preserves BSON, indexes, aggregation and records a
     db = await BsonLite.open(options);
     assert.equal(await db.collection("records").countDocuments({}), 2);
     assert.equal((await db.collection("records").findOne({ _id: id })).message, "BSL_MODERN_PRIVATE_SENTINEL_4096");
+    const current = db.collection("records").client.options;
+    assert.notEqual(current.credentials.password, oldAuth.password);
+    const stale = new MongoClient("mongodb://127.0.0.1:" + db.info.port, { ...connection,
+      authSource: "admin", auth: oldAuth, authMechanism: "SCRAM-SHA-256", tls: true,
+      tlsCAFile: current.tlsCAFile, tlsCertificateKeyFile: current.tlsCertificateKeyFile });
+    try { await assert.rejects(stale.connect(), e => e.code === 18); } finally { await stale.close(); }
     await assert.rejects(db.collection("records").insertOne({ order: 1 }), e => e.code === 11000);
     const collection = db.collection("records");
     assert.equal(collection.writeConcern.w, 1);
