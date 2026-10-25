@@ -5,6 +5,7 @@ import importlib.util
 import json
 from pathlib import Path
 import subprocess
+import stat
 import sys
 import tempfile
 import xml.etree.ElementTree as ET
@@ -25,6 +26,10 @@ def enable(engine, manifest):
             or metadata.get("upstreamCommit") != LOCK["mongo"]["commit"]
             or metadata.get("engineSha256") != helpers.digest(engine)):
         raise RuntimeError("The modern engine does not match its build manifest")
+    # Bazel output files are read-only and Copy-Item preserves that attribute.
+    # Only this checksum-verified staged copy is modified; the Bazel output
+    # remains untouched. mt.exe otherwise fails with c101008d/access denied.
+    engine.chmod(engine.stat().st_mode | stat.S_IWRITE)
     tool = helpers.manifest_tool()
     with tempfile.TemporaryDirectory(prefix="bsonlite-modern-utf8-") as folder:
         original, merged, verified = [Path(folder) / n for n in ("original.xml", "merged.xml", "verified.xml")]
