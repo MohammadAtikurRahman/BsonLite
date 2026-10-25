@@ -74,6 +74,8 @@ Mode: source-preview (native engine not included)
 
 A preview contains the JavaScript SDK and driver, without an executable database engine. It is for source and packaging checks. A full `npm run build` needs the matching validated Windows engine, native manifest and source archive. The [Windows workflow](.github/workflows/modern-engine.yml) builds these, runs real native/migration/CLI tests and tests the actual default-build CJS before uploading downloads.
 
+A preview replaces the same `dist/BsonLite.cjs` path. Run `npm run build` as the final build step before uploading the standalone file, and confirm `Mode: native-encrypted`.
+
 The explicit `build:modern` and `build:modern:preview` aliases retain `dist-modern/` for existing tooling. The separate `build:legacy` and `build:legacy:preview` commands select the old 4.0.28/driver 6.16.0 compatibility profile and write `dist-legacy/`. Neither legacy command is the default.
 
 ## Existing databases

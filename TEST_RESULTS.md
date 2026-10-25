@@ -1,5 +1,46 @@
 # BsonLite validation
 
+## Tracked native build inputs
+
+Commit `69920051901246994896c1bc53cc5f32bacaabd3` adds the temporary native
+snapshot requested by the maintainer. It contains the actual tested encrypted
+engine and matching modified source as 38 binary Git parts, with the original
+manifest, component notices and snapshot validation reports. It does not
+change the native engine or the SDK runtime source.
+
+The ordinary build reconstructs missing inputs, checks part and final SHA-256
+digests against the native manifest, and then runs the existing native checks.
+Six focused tests cover exact reconstruction, repeated builds, corrupt or
+missing parts, manifest mismatch, path confinement and preserving an existing
+engine. Local source tests passed 40 of 45 cases with five platform/native-probe
+skips and no failures; source-preview packaging passed all three cases.
+The same actual snapshot also reconstructed successfully in a fresh checkout
+containing only the staged Git files. All uploaded part blob IDs and the final
+Git tree matched the local staged tree; original JUnit hashes survived staging.
+
+The [modern Windows run](https://github.com/MohammadAtikurRahman/BsonLite/actions/runs/40207704023)
+includes a separate fresh-checkout `npm ci` / ordinary `npm run build` gate
+before restoring a compiled-engine cache. That gate passed, including the
+real engine self-test and a full embedded SDK build from the tracked parts.
+The separate [legacy compatibility run](https://github.com/MohammadAtikurRahman/BsonLite/actions/runs/40207704035)
+checks that the explicit older profile remains unaffected.
+
+Both workflows completed successfully on **2026-10-25**. The modern run
+passed source, compiled storage and Windows jobs, including all required
+source/native (7), runtime/migration/CLI (3) and final embedded-consumer (9)
+cases. Its prepared npm prerelease also passed pack/install/import validation.
+The legacy Windows run passed all 45 unit/security/native-helper cases and its
+complete source, bundled-native and earlier-format suites without failures.
+
+The snapshot engine SHA-256 is
+`61d9c95ae1e58d96ac7f74d5aa46e7aefc1f8a3208a86097dbc77c3af62f5307`;
+its matching modified-source SHA-256 is
+`7f9a0652698f08e9b7d1cba63c0e5dbb6724f50e433aef274b72873c9f0a6a4e`.
+The requested ignore rules remain removed until the maintainer explicitly
+asks to restore them. The website can distribute the final CJS directly,
+with source/notices linked separately; Console/CLI and npm remain separate
+distribution options.
+
 ## Current default profile: 9.0.4
 
 The default core is now **0.7.0-alpha.0 / engine 9.0.4 / driver 7.7.0**.
