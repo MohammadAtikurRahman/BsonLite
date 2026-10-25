@@ -117,9 +117,16 @@ test("rebuilt engine encrypts actual aggregation spill files",enabled&&!prototyp
 
 test("rebuilt engine prevents per-collection plaintext encryption overrides",enabled&&!prototype?{}:{skip:"Requires the rebuilt MongoDB configuration suffix enforcement."},async()=>{
  const root=temp(),directory=path.join(root,"Database");let db;try{db=await B.open(options(directory));let created=false;try{await db.createCollection("attempt",{storageEngine:{wiredTiger:{configString:"encryption=(name=none)"}}});created=true;}catch(error){
-   if(typeof error.code!=="number")await startupFixtureDiagnostic(directory);
-   assert.equal(typeof error.code,"number","The override must be rejected by the server, not fail unexpectedly: "+error.name+": "+String(error.message).slice(0,1000));
+   // Driver 7 wraps write-command IllegalOperation (20) in a retryable-write
+   // message even with retryWrites:false. Inspect its preserved server error;
+   // a client/network failure must never count as an encryption rejection.
+   const rejected=error.originalError||error;
+   if(typeof rejected.code!=="number")await startupFixtureDiagnostic(directory);
+   assert.equal(rejected.name,"MongoServerError");
+   assert.equal(typeof rejected.code,"number","The override must be rejected by the server, not fail unexpectedly: "+error.name+": "+String(error.message).slice(0,1000));
+   if(rejected!==error)assert.equal(rejected.code,20);
    assert.equal((await db.ping()).ok,1,"Rejected encryption overrides must leave the engine usable");
+   assert.equal((await db.listCollections({name:"attempt"}).toArray()).length,0,"A rejected override must not leave a partial collection");
   }
   if(created){await db.collection("attempt").insertOne({value:"FORCED_ENCRYPTION_SENTINEL"});await db.close();db=null;const files=fs.readdirSync(path.join(directory,"data")).filter(n=>n.startsWith("collection-")&&n.endsWith(".wt"));for(const name of files){const file=path.join(directory,"data",name);assert.equal(findMarker(file,Buffer.from("FORCED_ENCRYPTION_SENTINEL")),false);if(fs.statSync(file).size>4096)assert.ok(findMarker(file,Buffer.from("BSLAE001")));}}
  }finally{if(db)await db.close();clean(root);}
