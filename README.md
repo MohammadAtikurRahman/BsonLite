@@ -1,4 +1,4 @@
-# BsonLite 0.6.0-rc.1
+# BsonLite
 
 A single-file, MongoDB-based Node.js SDK for offline Windows applications. The customer artifact includes the driver, custom engine, certificate code and notices in **BsonLite.cjs**. MongoDB 4.0.28 runs behind the API; customers do not install MongoDB, compilers, Python, libsodium, EFS or BitLocker.
 
@@ -12,11 +12,23 @@ Community 9.0.4 / WiredTiger 12 and Node.js driver 7.7.0. It adds a logical
 indexes, validators and views in a new directory. The original store stays in
 place. Node.js 20.19+ and Windows x64 build 20348+ are the modern build profile.
 
-This development path is not a replacement customer release yet. Its workflow
-requires real encrypted storage, journal/spill, backup, migration, existing CLI
-and final single-file consumer tests before producing a validated experimental
-artifact. The default build and published npm package retain their existing
-engine. See [modern build and migration instructions](native/modern/README.md).
+Experimental SDK **0.7.0-alpha.0** passed its complete Windows engine and
+single-file consumer gates on **2026-10-25** at commit
+`5137fbc92749f20679445657d504718446db4eab`:
+[successful run](https://github.com/MohammadAtikurRahman/BsonLite/actions/runs/40181496708).
+The run covers native encryption, backup/restore, 141-record migration with
+typed BSON, indexes and views, forced-engine-crash recovery, TLS/authentication,
+the existing CLI and isolated concurrent single-file consumers.
+
+- [Standalone SDK, matching engine source and test evidence](https://github.com/MohammadAtikurRahman/BsonLite/actions/runs/40181496708/artifacts/12594725727): use `dist-modern/BsonLite.cjs`.
+- [Prepared npm prerelease tarball](https://github.com/MohammadAtikurRahman/BsonLite/actions/runs/40181496708/artifacts/12594269894): `bsonlite-sdk-0.7.0-alpha.0.tgz`, prepared for the `next` tag.
+- [বাংলা usage and migration guide](native/modern/UPGRADE_BN.md) and [build instructions](native/modern/README.md).
+
+The npm tarball was packed, installed and checksum/import verified on Windows;
+it has not been published to the registry. `npm run build` selects the 0.6
+legacy profile; `npm run build:modern` selects the validated experimental path.
+Existing 4.0 stores need a logical upgrade into a new directory. Clean desktop
+and independent security validation remain separate from these CI results.
 
 ## Use
 
@@ -54,7 +66,7 @@ The custom WiredTiger 3.1.1 encryptor uses pinned libsodium 1.0.22 / XChaCha20-P
 
 Windows DPAPI CurrentUser protects the key vault. The SDK configures loopback-only binding, a random port, mutual TLS, SCRAM-SHA-256, private file permissions and a rotating readWrite application account. Raw data keys are passed through a bounded stdin frame, never an engine argument, environment variable or plaintext key file.
 
-## Compatibility
+## Compatibility: 0.6 legacy profile
 
 | Area | Profile |
 | --- | --- |
@@ -104,4 +116,4 @@ After updating the SDK, keep your existing `BsonLite.connect(...)` code. BsonLit
 
 The optional adapter starts only after database connection and uses a private current-account registry and a token-protected HTTP endpoint on 127.0.0.1. The native encrypted engine and its mutual TLS connection are unchanged. Stop the SDK normally to remove the session. Set `console: false` in initial connection options or `BSONLITE_CONSOLE=0` to opt out. A running shared connection rejects conflicting Console options until it is stopped.
 
-The adapter source is bundled in `src/console-addon.cjs`; its Acorn dependency license is included. The standalone SDK combines the preserved native distribution with this adapter. npm distribution rc.3 loads the preserved core via its adapter entry point. The packed SDK's Windows Console/CLI check passed in [run 40085137332](https://github.com/MohammadAtikurRahman/Bsonlite-SDK/actions/runs/40085137332). The updated adapter preserves concurrent `start()` calls and rejects conflicting connection settings; the current core's full Windows compatibility suite passed in [run 40123385230](https://github.com/MohammadAtikurRahman/BsonLite/actions/runs/40123385230). Verification against the rebuilt modern engine is a separate required gate. See `CONSOLE_BN.md` and [test evidence](TEST_RESULTS.md).
+The adapter source is bundled in `src/console-addon.cjs`; its Acorn dependency license is included. The standalone SDK combines the native distribution with this adapter. npm distribution rc.3 loads its preserved core via its adapter entry point. The packed legacy SDK's Windows Console/CLI check passed in [run 40179501476](https://github.com/MohammadAtikurRahman/Bsonlite-SDK/actions/runs/40179501476). The updated adapter preserves concurrent `start()` calls and rejects conflicting connection settings. The same core commit passed both [the complete legacy Windows suite](https://github.com/MohammadAtikurRahman/BsonLite/actions/runs/40181496707) and [the modern engine/CLI gates](https://github.com/MohammadAtikurRahman/BsonLite/actions/runs/40181496708). The CLI compatibility fixture pins the real Console 0.2.0 client files and verifies their hashes before testing. See `CONSOLE_BN.md` and [test evidence](TEST_RESULTS.md).

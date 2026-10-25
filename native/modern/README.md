@@ -1,8 +1,14 @@
 # MongoDB 9.0.4 engine upgrade
 
-This is an experimental build path. The published 0.6 SDK and existing
-MongoDB 4.0.28 stores are unchanged. No 9.0 customer artifact is validated merely
-by applying the source patch or importing the source preview.
+The experimental Windows SDK and npm prerelease passed their complete native,
+migration/CLI and embedded-consumer gates on **2026-10-25**, at commit
+`5137fbc92749f20679445657d504718446db4eab`:
+[successful run and downloads](https://github.com/MohammadAtikurRahman/BsonLite/actions/runs/40181496708).
+The prepared package is `bsonlite-sdk@0.7.0-alpha.0` with the `next` publish tag;
+registry publication is a separate maintainer action. The default 0.6 profile
+uses the previous engine, and existing 4.0.28 stores require logical migration.
+Applying the source patch or importing a source preview alone cannot validate
+a new customer engine.
 
 [বাংলায় ব্যবহার ও পুরোনো database upgrade](UPGRADE_BN.md)
 

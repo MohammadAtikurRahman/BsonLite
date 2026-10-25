@@ -1,10 +1,15 @@
 # নতুন BsonLite engine ব্যবহার ও পুরোনো data নেওয়া
 
-এই branch-এ MongoDB Community 9.0.4, WiredTiger 12 এবং Node.js driver 7.7.0
-ব্যবহারের ব্যবস্থা আছে। এটি experimental সংস্করণ। Windows build ও runtime
-পরীক্ষা সফল হওয়ার পরে তৈরি artifact ব্যবহার করতে হবে। শুধু source preview
-দিয়ে database চালানো যায় না। [Build ও পরীক্ষার ফল](https://github.com/MohammadAtikurRahman/BsonLite/actions/workflows/modern-engine.yml)
-দেখুন।
+নতুন experimental SDK `0.7.0-alpha.0` MongoDB Community 9.0.4, WiredTiger 12
+ও Node.js driver 7.7.0 ব্যবহার করে। **২০২৬-১০-২৫** তারিখে এর আসল Windows
+engine, migration/CLI এবং final single-file SDK পরীক্ষা পাস করেছে:
+[পরীক্ষার ফল](https://github.com/MohammadAtikurRahman/BsonLite/actions/runs/40181496708)।
+
+- [Standalone SDK ও matching source](https://github.com/MohammadAtikurRahman/BsonLite/actions/runs/40181496708/artifacts/12594725727): ZIP থেকে `dist-modern/BsonLite.cjs` নিন।
+- [প্রস্তুত npm tarball](https://github.com/MohammadAtikurRahman/BsonLite/actions/runs/40181496708/artifacts/12594269894): `bsonlite-sdk-0.7.0-alpha.0.tgz`।
+
+এটি experimental সংস্করণ; clean Windows desktop ও independent security audit
+এখনও আলাদা কাজ। শুধু source preview দিয়ে database চালানো যায় না।
 
 আধুনিক build-এর জন্য Windows x64 build 20348+ এবং Node.js 20.19+ প্রয়োজন।
 বর্তমান `bsonlite-sdk@0.6.0-rc.3` পুরোনো engine-এর package; এই branch push
@@ -12,7 +17,7 @@
 
 ## নতুন project
 
-সফল workflow-এর artifact থেকে `dist-modern/BsonLite.cjs` নিন। আপনার project-এ
+উপরের পরীক্ষায় পাস করা artifact থেকে `dist-modern/BsonLite.cjs` নিন। আপনার নতুন project-এ
 ফাইলটি রেখে আগের মতোই ব্যবহার করুন:
 
 ```js
