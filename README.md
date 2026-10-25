@@ -1,8 +1,20 @@
 # BsonLite
 
-A portable database SDK for Node.js and Windows applications, with native encrypted storage and automatic Console connections.
+## Products and downloads
 
-The default core is **SDK 0.7.0-alpha.0, engine 9.0.4 and driver 7.7.0**. Ordinary `npm run build` and `npm run build:preview` select this profile and write `dist/BsonLite.cjs`.
+| Name | What it is |
+| --- | --- |
+| **BsonLite** | The database, downloaded as one `BsonLite.cjs` file. |
+| **`bsonlite-sdk`** | The npm package for BsonLite. |
+| **BsonLite Console** | The desktop GUI, integrated query console and optional terminal CLI. |
+
+[Download BsonLite](https://bsonlite.com/download.html) · [BsonLite Console](https://bsonlite.com/console.html) · [Documentation](https://bsonlite.com/docs/) · [Support development](https://buymeacoffee.com/bsonlite)
+
+The published modern npm version is available as `npm install bsonlite-sdk@next` (`0.7.0-alpha.0`). The default `npm install bsonlite-sdk` retains the earlier `0.6.0-rc.3` line for existing apps. Old data files need the documented logical upgrade before switching engine generations.
+
+A portable database for Node.js and Windows applications, with native encrypted storage and automatic Console connections.
+
+The default core is **BsonLite 0.7.0-alpha.0, engine 9.0.4 and driver 7.7.0**. Ordinary `npm run build` and `npm run build:preview` select this profile and write `dist/BsonLite.cjs`.
 
 ## Requirements
 
@@ -12,9 +24,9 @@ The default core is **SDK 0.7.0-alpha.0, engine 9.0.4 and driver 7.7.0**. Ordina
 
 The modern engine is an experimental prerelease. See [test evidence](TEST_RESULTS.md) for the exact tested commits, artifacts and remaining validation limits.
 
-## Use a validated SDK
+## Use a validated BsonLite
 
-Download the standalone SDK from a successful [Windows engine workflow](https://github.com/MohammadAtikurRahman/BsonLite/actions/workflows/modern-engine.yml), keeping its matching source, notices and validation record. Copy its `BsonLite.cjs` into your application:
+[Download BsonLite.cjs](https://bsonlite.com/download.php?file=bsonlite) directly from the website. Matching source, notices and validation records are linked on the [download page](https://bsonlite.com/download.html#source). Maintainers can also inspect the [Windows engine workflow](https://github.com/MohammadAtikurRahman/BsonLite/actions/workflows/modern-engine.yml). Copy its `BsonLite.cjs` into your application:
 
 ```js
 const BsonLite = require('./BsonLite.cjs');
@@ -30,13 +42,13 @@ main().catch(console.error);
 
 Call `await BsonLite.disconnect()` when the application exits. Data defaults to `./Database`. CommonJS and ESM default imports are supported. Use `BsonLite.BSON` and `BsonLite.ObjectId` when creating typed query values.
 
-A running app appears in BsonLite Console 0.2.0 automatically. The GUI is a separate application. See the [Console guide](CONSOLE.md) and [software page](https://bsonlite.com/console.html).
+A running app appears in BsonLite Console 0.3.0 automatically. The GUI is a separate application. See the [Console guide](CONSOLE.md) and [software page](https://bsonlite.com/console.html).
 
 ## Develop from source
 
 ### Build the standalone file after pulling
 
-This checkout temporarily tracks the validated native build inputs so a maintainer can rebuild the standalone SDK without downloading extra engine files or compiling C++:
+This checkout temporarily tracks the validated native build inputs so a maintainer can rebuild the standalone BsonLite file without downloading extra engine files or compiling C++:
 
 ```sh
 git pull --ff-only origin main
@@ -72,7 +84,7 @@ MongoDB 9.0.4 / win32/x64
 Mode: source-preview (native engine not included)
 ```
 
-A preview contains the JavaScript SDK and driver, without an executable database engine. It is for source and packaging checks. A full `npm run build` needs the matching validated Windows engine, native manifest and source archive. The [Windows workflow](.github/workflows/modern-engine.yml) builds these, runs real native/migration/CLI tests and tests the actual default-build CJS before uploading downloads.
+A preview contains the JavaScript layer of BsonLite and driver, without an executable database engine. It is for source and packaging checks. A full `npm run build` needs the matching validated Windows engine, native manifest and source archive. The [Windows workflow](.github/workflows/modern-engine.yml) builds these, runs real native/migration/CLI tests and tests the actual default-build CJS before uploading downloads.
 
 A preview replaces the same `dist/BsonLite.cjs` path. Run `npm run build` as the final build step before uploading the standalone file, and confirm `Mode: native-encrypted`.
 
@@ -88,9 +100,9 @@ Keep an encrypted backup and the original protected vault. A physical backup req
 
 BsonLite is independently developed using a custom MongoDB Community engine. It supports that standalone server's document queries, BSON, indexes and aggregation, including window aggregation in the modern profile. Server-side JavaScript, replica-set transactions, change streams and Atlas-only services are outside this profile.
 
-The custom WiredTiger 12 encryptor uses libsodium 1.0.22 / XChaCha20-Poly1305 for data and journals, and protects temporary spill data. Process logs are encrypted. Windows DPAPI CurrentUser protects each store's key vault. The SDK uses loopback-only networking, mutual TLS, SCRAM-SHA-256, private file permissions and rotating application credentials. Raw data keys travel over a bounded stdin frame.
+The custom WiredTiger 12 encryptor uses libsodium 1.0.22 / XChaCha20-Poly1305 for data and journals, and protects temporary spill data. Process logs are encrypted. Windows DPAPI CurrentUser protects each store's key vault. BsonLite uses loopback-only networking, mutual TLS, SCRAM-SHA-256, private file permissions and rotating application credentials. Raw data keys travel over a bounded stdin frame.
 
-The package is an SDK requiring a Node runtime. Clean Windows desktop/GUI testing, target-machine performance measurements and independent storage/cryptography review remain separate work. See [SECURITY.md](SECURITY.md).
+BsonLite requires a Node.js runtime. Clean Windows desktop/GUI testing, target-machine performance measurements and independent storage/cryptography review remain separate work. See [SECURITY.md](SECURITY.md).
 
 ## Documentation and source
 

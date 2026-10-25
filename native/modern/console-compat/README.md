@@ -6,9 +6,9 @@ records their SHA-256 hashes; `node verify.cjs` verifies them before CI installs
 the exact production dependencies with `npm ci --ignore-scripts`.
 
 The fixture contains the real terminal CLI and the connection/query modules
-used by Console 0.2.0. Core engine validation can run without cross-repository
+used by Console 0.3.0. Core engine validation can run without cross-repository
 credentials. Its package is private and contains no Electron build or UI.
-This is test input; the SDK continues to embed its existing Console adapter.
+This is test input; the BsonLite continues to embed its existing Console adapter.
 
 Update from the authoritative Console source when deliberately changing the
 compatibility target. Preserve the license, pin the commit and file hashes,
