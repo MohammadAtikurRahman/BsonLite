@@ -59,7 +59,7 @@ async function openStore(options) {
   await prepareManagedRoot();
   let metadata = readMetadata(options.directory);
   if (metadata && metadata.formatVersion === 1) {
-    throw new BsonLiteError("BSONLITE_MIGRATION_REQUIRED", "This is a version 0.1-0.3 database. Make an encrypted BsonLite.backup while it is stopped, then restore to a new directory. The original is preserved. See START_HERE_BN.md.");
+    throw new BsonLiteError("BSONLITE_MIGRATION_REQUIRED", "This is a version 0.1-0.3 database. Make an encrypted BsonLite.backup while it is stopped, then restore to a new directory. The original is preserved. See START_HERE.md.");
   }
   if (metadata && metadata.databaseName !== options.name) {
     throw new BsonLiteError("BSONLITE_NAME_MISMATCH", "This Database directory belongs to database '" + metadata.databaseName + "'. Start with that name; changing a name would appear to hide its records.");

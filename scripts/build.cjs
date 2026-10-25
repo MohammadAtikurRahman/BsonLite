@@ -10,7 +10,7 @@ const { profiles, profileFor } = require("../src/engine-profiles.cjs");
 
 async function main() {
   const profileArg = process.argv.find(value => value.startsWith("--engine-profile="));
-  const profileName = profileArg ? profileArg.slice("--engine-profile=".length) : "legacy";
+  const profileName = profileArg ? profileArg.slice("--engine-profile=".length) : profileFor(constants.ENGINE_VERSION).id;
   const profile = Object.values(profiles).find(item => item.id === profileName);
   if (!profile) throw new Error("Unknown engine build profile: " + profileName);
   const ENGINE_VERSION = profile.version, VERSION = profile.sdkVersion;
@@ -25,7 +25,7 @@ async function main() {
   const platform = process.env.BSONLITE_BUILD_PLATFORM || "win32";
   const arch = process.env.BSONLITE_BUILD_ARCH || "x64";
   const sourceOnly=process.argv.includes("--preview-source");
-  const dependencyNotices = require("./notices.cjs").collectNotices(root, { modern });
+  const dependencyNotices = require("./notices.cjs").collectNotices(root, { modern, driverPackage: profile.driverPackage });
   if (!sourceOnly&&!fs.existsSync(binary)) {
     throw new Error("The encrypted Windows engine has not been built. Run the native Windows workflow; an ordinary mongod.exe is not accepted as an encrypted engine.");
   }
@@ -69,7 +69,8 @@ async function main() {
     version: ENGINE_VERSION, platform: platform, arch: arch, sha256: sha256,
     gzipBase64: gzip.toString("base64"), licenses: notices,nativeManifest
   };
-  const dist = path.resolve(process.env.BSONLITE_BUILD_OUTDIR || path.join(root, modern ? "dist-modern" : "dist"));
+  const outputArg = process.argv.find(value => value.startsWith("--outdir="));
+  const dist = path.resolve(process.env.BSONLITE_BUILD_OUTDIR || (outputArg ? outputArg.slice("--outdir=".length) : path.join(root, "dist")));
   fs.mkdirSync(dist, { recursive: true });
   const result = await esbuild.build({
     absWorkingDir: root, entryPoints: ["src/index.cjs"],
@@ -89,7 +90,7 @@ async function main() {
           return {contents: "module.exports = Object.freeze(" + JSON.stringify({ ...constants,
             VERSION, ENGINE_VERSION, DRIVER_VERSION: profile.driverVersion }) + ");", loader: "js"};
         });
-        if (modern) build.onResolve({filter: /^mongodb$/}, function () {
+        build.onResolve({filter: /^mongodb$/}, function () {
           return {path: require.resolve(profile.driverPackage)};
         });
         build.onResolve({ filter: /^\.\/payload\.cjs$/ }, function () {
@@ -125,6 +126,7 @@ async function main() {
   }
   console.log("Built: " + path.join(dist, "BsonLite.cjs"));
   console.log("MongoDB " + ENGINE_VERSION + " / " + platform + "/" + arch);
+  console.log("Mode: " + (sourceOnly ? "source-preview (native engine not included)" : "native-encrypted"));
   console.log("File size: " + (manifest.distributionBytes / 1048576).toFixed(2) + " MiB");
 }
 main().catch(function (error) { console.error(error.message); process.exitCode = 1; });

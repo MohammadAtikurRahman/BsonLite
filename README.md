@@ -1,103 +1,38 @@
 # BsonLite
 
-A single-file, MongoDB-based Node.js SDK for offline Windows applications. The customer artifact includes the driver, custom engine, certificate code and notices in **BsonLite.cjs**. MongoDB 4.0.28 runs behind the API; customers do not install MongoDB, compilers, Python, libsodium, EFS or BitLocker.
+A portable database SDK for Node.js and Windows applications, with native encrypted storage and automatic Console connections.
 
-This is a release candidate with a defined Windows x64 profile, not an independently audited database product. Every downloadable native artifact is produced only after the Windows workflow passes its source and final-bundle checks. Its `validation.json` identifies the exact commit and run. A Git checkout and `build:preview` contain source work rather than a customer engine.
+The default core is **SDK 0.7.0-alpha.0, engine 9.0.4 and driver 7.7.0**. Ordinary `npm run build` and `npm run build:preview` select this profile and write `dist/BsonLite.cjs`.
 
-## Experimental modern engine
+## Requirements
 
-The experimental build path in `main` and `upgrade/mongodb-9.0` ports the encrypted engine to pinned MongoDB
-Community 9.0.4 / WiredTiger 12 and Node.js driver 7.7.0. It adds a logical
-`BsonLite.upgrade(...)` path from the previous encrypted SDK, preserving BSON,
-indexes, validators and views in a new directory. The original store stays in
-place. Node.js 20.19+ and Windows x64 build 20348+ are the modern build profile.
+- Windows x64 build 20348 or later (Windows Server 2022 / Windows 11 profile).
+- Node.js 20.19 or later; CI uses Node.js 24.
+- A private, writable directory, normally on NTFS.
 
-Experimental SDK **0.7.0-alpha.0** passed its complete Windows engine and
-single-file consumer gates on **2026-10-25** at commit
-`5137fbc92749f20679445657d504718446db4eab`:
-[successful run](https://github.com/MohammadAtikurRahman/BsonLite/actions/runs/40181496708).
-The run covers native encryption, backup/restore, 141-record migration with
-typed BSON, indexes and views, forced-engine-crash recovery, TLS/authentication,
-the existing CLI and isolated concurrent single-file consumers.
+The modern engine is an experimental prerelease. See [test evidence](TEST_RESULTS.md) for the exact tested commits, artifacts and remaining validation limits.
 
-- [Standalone SDK, matching engine source and test evidence](https://github.com/MohammadAtikurRahman/BsonLite/actions/runs/40181496708/artifacts/12594725727): use `dist-modern/BsonLite.cjs`.
-- [Prepared npm prerelease tarball](https://github.com/MohammadAtikurRahman/BsonLite/actions/runs/40181496708/artifacts/12594269894): `bsonlite-sdk-0.7.0-alpha.0.tgz`, prepared for the `next` tag.
-- [বাংলা usage and migration guide](native/modern/UPGRADE_BN.md) and [build instructions](native/modern/README.md).
+## Use a validated SDK
 
-The npm tarball was packed, installed and checksum/import verified on Windows;
-it has not been published to the registry. `npm run build` selects the 0.6
-legacy profile; `npm run build:modern` selects the validated experimental path.
-Existing 4.0 stores need a logical upgrade into a new directory. Clean desktop
-and independent security validation remain separate from these CI results.
-
-## Use
-
-Copy the validated `BsonLite.cjs` into your Node.js project:
+Download the standalone SDK from a successful [Windows engine workflow](https://github.com/MohammadAtikurRahman/BsonLite/actions/workflows/modern-engine.yml), keeping its matching source, notices and validation record. Copy its `BsonLite.cjs` into your application:
 
 ```js
 const BsonLite = require('./BsonLite.cjs');
 
 async function main() {
-  await BsonLite.connect();
-  // Start your server or desktop application here.
+  const db = await BsonLite.connect();
+  await db.collection('users').insertOne({ name: 'Atik' });
+  console.log(await db.collection('users').find({}).toArray());
+  // Keep the connection open while your application is running.
 }
-main().catch(error => {
-  console.error(error.code, error.message);
-  process.exitCode = 1;
-});
+main().catch(console.error);
 ```
 
-Other files use the same SDK after connection:
+Call `await BsonLite.disconnect()` when the application exits. Data defaults to `./Database`. CommonJS and ESM default imports are supported. Use `BsonLite.BSON` and `BsonLite.ObjectId` when creating typed query values.
 
-```js
-const BsonLite = require('./BsonLite.cjs');
-module.exports.addUser = user => BsonLite.collection('users').insertOne(user);
-```
+A running app appears in BsonLite Console 0.2.0 automatically. The GUI is a separate application. See the [Console guide](CONSOLE.md) and [software page](https://bsonlite.com/console.html).
 
-Startup prints connection status and the database port. It does not insert or print documents. `BsonLite.status()` exposes connection details; `await BsonLite.disconnect()` stops it. A name is optional (`connect('myapp')`); an existing store's name is inferred when omitted. CommonJS `require` and ES-module default `import` are supported.
-
-`BsonLite.BSON` supplies `Long`, `Decimal128`, `Binary`, `Int32`, `Double`, `BSONRegExp`, serializers and other BSON types without a separate npm install. `BsonLite.ObjectId` remains available directly.
-
-Data stays in `./Database`. The SDK extracts its trusted engine into private OS application data; the protected credential/data-key vault and temporary TLS sessions also stay there. The operating system needs an executable file to run the engine. These runtime files are outside the application project.
-
-## Encryption and connection
-
-The custom WiredTiger 3.1.1 encryptor uses pinned libsodium 1.0.22 / XChaCha20-Poly1305 with an independent random key per database. The full engine also protects MongoDB temporary spill files and forces encryption on collection/index creation. Process diagnostics use separately derived AES-256-GCM keys. This is live-file encryption, independent of EFS or BitLocker.
-
-Windows DPAPI CurrentUser protects the key vault. The SDK configures loopback-only binding, a random port, mutual TLS, SCRAM-SHA-256, private file permissions and a rotating readWrite application account. Raw data keys are passed through a bounded stdin frame, never an engine argument, environment variable or plaintext key file.
-
-## Compatibility: 0.6 legacy profile
-
-| Area | Profile |
-| --- | --- |
-| OS / CPU | Windows 10 version 1903+ or Windows 11, x64; compatible Windows Server releases |
-| Runtime | Node.js 20+ or a compatible packaged runtime; CI uses Node.js 24 on Windows Server 2022 |
-| Filesystem | A private writable location with Windows access controls, normally NTFS |
-| Queries | MongoDB 4.0.28 CRUD, BSON, indexes and aggregation supported by that server version |
-| Process | One authenticated standalone MongoDB process per store, bound to `127.0.0.1` |
-| Server-side JavaScript | Disabled; `$where` and JavaScript-based `mapReduce` are unavailable |
-| Transactions / change streams | Replica-set features are outside this standalone profile |
-| Packaged desktop apps | The application must supply Node/runtime and a writable data location; actual Electron/installer tests remain necessary |
-
-The CJS is an SDK, not a standalone EXE. Clean Windows Home/Pro, packaged Electron, power-loss/disk-full behavior and independent security review remain outside the automated CI evidence.
-
-## Existing data and recovery
-
-Native encryption is the default for new databases. Preserve existing `Database` folders and their matching vaults. Earlier stores are not encrypted by changing metadata or flags. For supported non-native BsonLite 0.4/0.5 stores, use `BsonLite.migrate({sourceDirectory, directory})` into a new directory. It preserves BSON types, collection options, supported indexes and views through TLS, keeps the original records, and marks interrupted destinations incomplete. Older legacy stores require encrypted export/restore first. See `START_HERE_BN.md`.
-
-Stopped-store `backup({file,password})` and `restore({file,password,directory})` preserve the native key and cipher metadata in an authenticated encrypted archive. Restore wraps the key for the destination account. Physical backups require the same OS, architecture and engine. Copying only `Database` to another account/PC does not copy its protected key.
-
-`BsonLite.recover({directory})` handles provably stale locks after all using apps have closed. It checks project, private-store and engine ownership and preserves records/vaults. It refuses living processes or ambiguous ownership; it does not kill processes or reset data.
-
-Explicit `storageEncryption:'auto'|'required'|'none'` is retained for earlier-format administration/migration. Native stores reject plaintext downgrades. `native-prototype` is a limited Linux developer mode and never reports full verification.
-
-## Source and build
-
-Source: [MohammadAtikurRahman/BsonLite](https://github.com/MohammadAtikurRahman/BsonLite), branch `main`.
-
-A push to `main` runs **Build native encrypted Windows SDK**. Only a successful run uploads **BsonLite-native-Windows-x64-<commit>**, including `dist/BsonLite.cjs`, starter files, hashes, validation provenance, notices and matching modified-engine source. The workflow does not automatically publish a GitHub Release. See `native/README.md`, `DEPLOY_WINDOWS.md` and `TEST_RESULTS.md`.
-
-For source development:
+## Develop from source
 
 ```sh
 npm ci
@@ -106,14 +41,38 @@ npm run build:preview
 npm run test:packaging
 ```
 
-`npm run build` requires the matching custom engine and successful Windows integration validation. The source preview intentionally has no embedded engine.
+Expected preview output:
 
-Read `SECURITY.md` and `licenses/SOURCE_AND_NOTICES.md` before distribution. MongoDB 4.0.28 is end-of-life; this encryption layer does not supply upstream server maintenance. The SDK does not promise anti-rollback protection or confidentiality against compromised runtimes, same-account malware, administrators, pagefiles, hibernation or OS crash dumps. Plan encrypted backups before distributing an offline product.
+```text
+MongoDB 9.0.4 / win32/x64
+Mode: source-preview (native engine not included)
+```
 
-## Automatic BsonLite Console connections
+A preview contains the JavaScript SDK and driver, without an executable database engine. It is for source and packaging checks. A full `npm run build` needs the matching validated Windows engine, native manifest and source archive. The [Windows workflow](.github/workflows/modern-engine.yml) builds these, runs real native/migration/CLI tests and tests the actual default-build CJS before uploading downloads.
 
-After updating the SDK, keep your existing `BsonLite.connect(...)` code. BsonLite Console 0.2.0 discovers the running local database, fills its URL, and opens it when you click Connect. Multiple apps appear in a dropdown. No separate helper package or project-folder selection is required.
+The explicit `build:modern` and `build:modern:preview` aliases retain `dist-modern/` for existing tooling. The separate `build:legacy` and `build:legacy:preview` commands select the old 4.0.28/driver 6.16.0 compatibility profile and write `dist-legacy/`. Neither legacy command is the default.
 
-The optional adapter starts only after database connection and uses a private current-account registry and a token-protected HTTP endpoint on 127.0.0.1. The native encrypted engine and its mutual TLS connection are unchanged. Stop the SDK normally to remove the session. Set `console: false` in initial connection options or `BSONLITE_CONSOLE=0` to opt out. A running shared connection rejects conflicting Console options until it is stopped.
+## Existing databases
 
-The adapter source is bundled in `src/console-addon.cjs`; its Acorn dependency license is included. The standalone SDK combines the native distribution with this adapter. npm distribution rc.3 loads its preserved core via its adapter entry point. The packed legacy SDK's Windows Console/CLI check passed in [run 40179501476](https://github.com/MohammadAtikurRahman/Bsonlite-SDK/actions/runs/40179501476). The updated adapter preserves concurrent `start()` calls and rejects conflicting connection settings. The same core commit passed both [the complete legacy Windows suite](https://github.com/MohammadAtikurRahman/BsonLite/actions/runs/40181496707) and [the modern engine/CLI gates](https://github.com/MohammadAtikurRahman/BsonLite/actions/runs/40181496708). The CLI compatibility fixture pins the real Console 0.2.0 client files and verifies their hashes before testing. See `CONSOLE_BN.md` and [test evidence](TEST_RESULTS.md).
+Use [the logical upgrade guide](native/modern/UPGRADE.md) for an existing encrypted 4.0.28 store. It copies records into a new directory, converts BSON across driver majors, recreates supported indexes/validators/views, verifies counts/digests and preserves the original records. The default 9.0 core refuses to open old 4.0 files directly.
+
+Keep an encrypted backup and the original protected vault. A physical backup requires its matching engine; copying metadata or changing a version is not migration. Non-simple collations need explicit review across ICU versions.
+
+## Encryption and supported operations
+
+BsonLite is independently developed using a custom MongoDB Community engine. It supports that standalone server's document queries, BSON, indexes and aggregation, including window aggregation in the modern profile. Server-side JavaScript, replica-set transactions, change streams and Atlas-only services are outside this profile.
+
+The custom WiredTiger 12 encryptor uses libsodium 1.0.22 / XChaCha20-Poly1305 for data and journals, and protects temporary spill data. Process logs are encrypted. Windows DPAPI CurrentUser protects each store's key vault. The SDK uses loopback-only networking, mutual TLS, SCRAM-SHA-256, private file permissions and rotating application credentials. Raw data keys travel over a bounded stdin frame.
+
+The package is an SDK requiring a Node runtime. Clean Windows desktop/GUI testing, target-machine performance measurements and independent storage/cryptography review remain separate work. See [SECURITY.md](SECURITY.md).
+
+## Documentation and source
+
+- [Quick start](START_HERE.md)
+- [Console and CLI](CONSOLE.md)
+- [Native build and validation](native/modern/README.md)
+- [Database upgrade](native/modern/UPGRADE.md)
+- [npm preparation and publishing](https://github.com/MohammadAtikurRahman/Bsonlite-SDK/blob/main/MODERN_ENGINE.md)
+- [Contributing](CONTRIBUTING.md)
+
+The JavaScript wrapper is MIT licensed. The modified engine remains SSPL-1.0. Matching modified engine source and component notices must accompany distribution; the wrapper does not relicense the engine.

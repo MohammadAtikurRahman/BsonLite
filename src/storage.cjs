@@ -46,7 +46,7 @@ async function verifyStorage(directory, policy, execute = windowsJSON, platform 
   }
   if (!result || result.verified !== true || !["efs", "bitlocker"].includes(result.method)) {
     if (policy === "auto") return unverified("encryption-not-verified");
-    throw new BsonLiteError("BSONLITE_STORAGE_ENCRYPTION", "Live data encryption could not be verified. Put Database on a fully encrypted BitLocker volume with protection On, or an EFS-encrypted folder with inheritance. BsonLite will not enable whole-drive encryption or silently use plaintext. See START_HERE_BN.md.");
+    throw new BsonLiteError("BSONLITE_STORAGE_ENCRYPTION", "Live data encryption could not be verified. Put Database on a fully encrypted BitLocker volume with protection On, or an EFS-encrypted folder with inheritance. BsonLite will not enable whole-drive encryption or silently use plaintext. See START_HERE.md.");
   }
   return Object.freeze({ policy, required: policy === "required", verified: true, method: result.method });
 }

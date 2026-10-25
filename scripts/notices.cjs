@@ -9,12 +9,12 @@ function collectNotices(root, options = {}) {
   // Acorn is already embedded in the Console adapter; it is not installed as a
   // package in this repository and must survive lockfile notice regeneration.
   for (const name of fs.readdirSync(folder)) if (name.startsWith("Dependency-") && !name.startsWith("Dependency-acorn-")) fs.unlinkSync(path.join(folder, name));
-  const modernDependencies = new Set();
-  if (options.modern) {
+  const embeddedDependencies = new Set();
+  {
     function visit(source) {
       source = fs.realpathSync(source);
-      if (modernDependencies.has(source)) return;
-      modernDependencies.add(source);
+      if (embeddedDependencies.has(source)) return;
+      embeddedDependencies.add(source);
       const pkg = JSON.parse(fs.readFileSync(path.join(source, "package.json"), "utf8"));
       for (const name of Object.keys(pkg.dependencies || {})) {
         let resolved;
@@ -24,7 +24,7 @@ function collectNotices(root, options = {}) {
         visit(resolved);
       }
     }
-    visit(path.join(root, "node_modules/mongodb-modern"));
+    visit(path.join(root, "node_modules", options.driverPackage || "mongodb"));
     const common = JSON.parse(fs.readFileSync(path.join(root, "package.json"), "utf8"));
     for (const name of Object.keys(common.dependencies || {})) {
       if (name !== "mongodb") visit(path.join(root, "node_modules", name));
@@ -37,7 +37,7 @@ function collectNotices(root, options = {}) {
     if (!relative) continue;
     const source = path.join(root, relative);
     if (!fs.existsSync(path.join(source, "package.json"))) continue;
-    if (options.modern ? !modernDependencies.has(fs.realpathSync(source)) : entry.dev) continue;
+    if (!embeddedDependencies.has(fs.realpathSync(source))) continue;
     const pkg = JSON.parse(fs.readFileSync(path.join(source, "package.json"), "utf8"));
     const names = fs.readdirSync(source).filter(name => /^(licen[sc]e|copying|copyright|notice)/i.test(name) && fs.statSync(path.join(source, name)).isFile());
     if (!names.some(name => /^(licen[sc]e|copying)/i.test(name))) throw new Error("A dependency license is missing: " + pkg.name);

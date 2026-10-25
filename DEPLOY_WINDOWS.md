@@ -1,17 +1,13 @@
-# Windows build and deployment
+# Windows distribution
 
-BsonLite 0.6.0-rc.1 is a Windows x64 SDK release candidate. A customer artifact is uploaded only after the complete native Windows workflow succeeds. The artifact's `validation.json` identifies its matching commit/run; a source-preview CJS has no embedded engine.
+The current core is SDK 0.7.0-alpha.0 with engine 9.0.4 and driver 7.7.0. Its profile requires Windows x64 build 20348+ and Node.js 20.19+.
 
-The pinned MongoDB 4.0.28 engine has compiled and linked on Windows Server 2022 with v141, Windows SDK 10.0.19041.0, static CRT, static libsodium 1.0.22 and native Windows SChannel TLS. The builder checks external DLL imports, rejects `MiniDumpWriteDump`, runs the actual cipher self-test and packages the matching modified-engine source. Compiled outputs are cached by native-source hash. Full runtime checks remain mandatory for every delivered SDK build.
+Use the artifact from a successful [modern Windows workflow](.github/workflows/modern-engine.yml). It contains the standalone `dist/BsonLite.cjs`, matching engine/source, notices and validation evidence. The `dist-modern` compatibility copy supports the npm preparation tooling.
 
-`enable_windows_utf8.py` adds an engine-process UTF-8 manifest with the Windows SDK manifest tool, preserves execution-level/OS settings, rechecks the actual self-test, rebinds the binary hash and resets Windows integration to pending. The pinned engine uses a documented exit-code self-test protocol because MongoDB's fast termination bypasses stdout flushing. Source and final-bundle tests exercise real encrypted data/journals, actual aggregation spills, configuration overrides, migration, restore, isolated consumers and concurrent extraction before an artifact can be uploaded.
+The workflow builds the pinned Community source with Visual Studio 2022/v143, static libsodium and CRT, Windows SChannel and a verified UTF-8 process manifest. Real source/native, migration/CLI and final embedded tests must pass before a customer artifact is uploaded. It exercises the ordinary default `npm run build`, not only a named modern build.
 
-Developer-only downloads are pinned in `native/deps.lock.json`. Python 2.7 is confined to the legacy build host. The builder verifies the Microsoft-signed VC90 installer and installs v141/ATL/SDK components when needed. None of these tools/installers is required or included in the customer CJS. See `native/README.md`.
+For local source checks, run `npm ci`, `npm test`, `npm run build:preview` and `npm run test:packaging`. A preview has no embedded database executable. A full local build requires the matching validated engine, manifest and modified-source archive; follow [the native build guide](native/modern/README.md).
 
-For customer use, place the validated `BsonLite.cjs` in the Node application's backend/main process. The file includes the driver and native engine; no separate npm/MongoDB/crypto installation or EFS/BitLocker setup is required. It needs Node.js 20+ or a compatible packaged runtime. CI uses Node.js 24. The CJS is not a standalone EXE or installer.
+Keep data in a private writable application location. The SDK manages its engine/vault in private OS application data. Do not place mutable data inside a read-only application installation directory. For an old database, perform [logical upgrade](native/modern/UPGRADE.md) into a new directory.
 
-The engine requires Windows 10 version 1903 (build 18362) or later, Windows 11, or a compatible Windows Server release, x64. No system-locale command or reboot is requested. Engine/vault/TLS state uses private OS application data; the default `Database` stays in the working project. Use a private writable ACL-capable NTFS location. Installed applications under a read-only Program Files/ASAR directory must choose a writable data location explicitly.
-
-Before customer distribution, test a normal non-admin account on clean Windows Home and Pro and test the actual packaged desktop application. Verify first launch, restart, Unicode paths, offline operation and matching encrypted backup restore. CI's installed software does not prove a clean-PC deployment. Electron fuses, ASAR placement, process spawning and application signing require a packaged-app test. No such result or independent security audit is claimed by this repository.
-
-Preserve notices, matching modified-engine source and the original license conditions. The SDK wrapper's MIT license does not relicense MongoDB. The workflow publishes an Actions artifact, not an automatic GitHub Release.
+Run your own clean Windows GUI/installer and target-machine checks before production distribution. Retain encrypted backups, matching SSPL engine source and component licenses. See [test evidence](TEST_RESULTS.md) and [security model](SECURITY.md).

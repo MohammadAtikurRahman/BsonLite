@@ -98,8 +98,8 @@ This is an **experimental validated prerelease**, prepared for the `next` tag.
 It has not been published to npm by this workflow. The current published 0.6
 package has separate legacy Windows interoperability evidence in
 [run 40179501476](https://github.com/MohammadAtikurRahman/Bsonlite-SDK/actions/runs/40179501476).
-See the [modern usage/migration guide](native/modern/UPGRADE_BN.md) and
-[npm preparation/publishing guide](https://github.com/MohammadAtikurRahman/Bsonlite-SDK/blob/main/MODERN_ENGINE_BN.md).
+See the [modern usage/migration guide](native/modern/UPGRADE.md) and
+[npm preparation/publishing guide](https://github.com/MohammadAtikurRahman/Bsonlite-SDK/blob/main/MODERN_ENGINE.md).
 
 ## Legacy native build evidence
 

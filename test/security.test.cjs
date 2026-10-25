@@ -58,7 +58,7 @@ test("vault round trip uses DPAPI on Windows and authenticated encryption in sou
 test("archive paths exclude traversal, Windows devices, duplicates and oversized payloads", () => {
   for (const value of ["/data/x", "data/../secret", "data/./x", "data/a\\b", "data/C:/x", "data/con.txt", "data/x.", "data//x", "data/x:stream"]) assert.equal(safePath(value), false, value);
   assert.equal(safePath("data/journal/WiredTigerLog.0000000001"), true);
-  const base = { version: 1, engineVersion: "4.0.28", databaseName: "test", auth: { username: "bsonlite_admin", password: "a".repeat(64) }, total: 1,
+  const base = { version: 1, engineVersion: require("../src/constants.cjs").ENGINE_VERSION, databaseName: "test", auth: { username: "bsonlite_admin", password: "a".repeat(64) }, total: 1,
     files: [{ path: "data/WiredTiger", size: 1, sha256: "b".repeat(64) }] };
   validateManifest(base, 100);
   for (const manifest of [{ ...base, total: 101 }, { ...base, files: [...base.files, { ...base.files[0], path: "data/wiredtiger" }], total: 2 },

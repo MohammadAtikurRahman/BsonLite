@@ -1,7 +1,7 @@
 "use strict";
 const test = require("node:test"), assert = require("node:assert/strict");
 const fs = require("node:fs"), os = require("node:os"), path = require("node:path"), crypto = require("node:crypto");
-const oldBson = require("mongodb").BSON, modernBson = require("mongodb-modern").BSON;
+const oldBson = require("mongodb-legacy").BSON, modernBson = require("mongodb").BSON;
 const { createUpgrader } = require("../src/upgrade.cjs");
 
 function memoryDatabase(bson, initial = {}, options = {}) {
@@ -107,5 +107,5 @@ test("BSON values inside validators are converted to the target BSON library", a
 });
 
 test("the existing SDK cannot accidentally claim to perform a modern-engine upgrade", async () => {
-  await assert.rejects(createUpgrader(() => {})({}), e => e.code === "BSONLITE_UPGRADE_TARGET");
+  await assert.rejects(createUpgrader(() => {}, { version: "4.0.28", bson: oldBson })({}), e => e.code === "BSONLITE_UPGRADE_TARGET");
 });

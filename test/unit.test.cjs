@@ -14,13 +14,14 @@ const { serialize } = require("../src/errors.cjs");
 const { readMetadata, metadataFor, checkLegacyLocation } = require("../src/store.cjs");
 const temp = () => fs.mkdtempSync(path.join(os.tmpdir(), "bsonlite-unit-"));
 
-test("import is inert and the exact driver supports MongoDB 4.0", () => {
+test("the default core imports inertly with engine 9.0.4 and driver 7.7.0", () => {
   for (const name of ["connect", "disconnect", "start", "open", "stop", "collection", "status", "backup", "restore", "recover"]) assert.equal(typeof BsonLite[name], "function");
   assert.equal(BsonLite.status().connected, false);
   assert.equal(BsonLite.version, require("../package.json").version);
-  assert.equal(BsonLite.engineVersion, "4.0.28");
-  assert.equal(require("mongodb/package.json").version, "6.16.0");
-  assert.equal(require("mongodb/lib/cmap/wire_protocol/constants").MIN_SUPPORTED_SERVER_VERSION, "4.0");
+  assert.equal(BsonLite.engineVersion, "9.0.4");
+  assert.equal(BsonLite.driverVersion, "7.7.0");
+  assert.equal(require("mongodb/package.json").version, "7.7.0");
+  assert.equal(BsonLite.BSON, require("mongodb").BSON);
   assert.equal(new BsonLite.ObjectId().toHexString().length, 24);
 });
 test("invalid names and unknown security options fail before process startup", async () => {
@@ -181,8 +182,7 @@ test("a store requiring encryption refuses an explicit plaintext downgrade", asy
   const directory=temp();
   try {
     fs.writeFileSync(path.join(directory,"bsonlite.json"),JSON.stringify(metadataFor("a".repeat(32),"myapp",true)));
-    const options=normalizeOptions({name:"myapp",directory,storageEncryption:"none",...(process.platform==="win32"?{}:{vaultPassword:"security-downgrade-test-password"})});
-    await assert.rejects(require("../src/store.cjs").openStore(options),error=>error.code==="BSONLITE_SECURITY_DOWNGRADE");
+    await assert.rejects(BsonLite.open({name:"myapp",directory,storageEncryption:"none"}),error=>error.code==="BSONLITE_SECURITY_DOWNGRADE");
     assert.equal(readMetadata(directory).encryptionRequired,true);
   } finally {fs.rmSync(directory,{recursive:true,force:true});}
 });
@@ -197,12 +197,26 @@ test("connection defaults infer an existing store name instead of opening an app
     assert.throws(()=>normalizeOptions({directory}),error=>error.code==="BSONLITE_METADATA");
   } finally {fs.rmSync(directory,{recursive:true,force:true});}
 });
-test("automatic mode preserves the required policy of existing stores", () => {
+test("automatic mode uses native encryption and refuses a non-native store", () => {
   const directory=temp(),{storagePolicy}=require("../src/store.cjs");
   try {
-    const options=normalizeOptions({directory,storageEncryption:"auto"});assert.equal(storagePolicy(options),"auto");
+    const options=normalizeOptions({directory,storageEncryption:"auto"});assert.equal(storagePolicy(options),"native");
     fs.writeFileSync(path.join(directory,"bsonlite.json"),JSON.stringify(metadataFor("a".repeat(32),"myapp",true)));
-    assert.equal(storagePolicy({...options,storageEncryption:"auto"}),"required");
-    assert.throws(()=>storagePolicy({...options,storageEncryption:"none"}),error=>error.code==="BSONLITE_SECURITY_DOWNGRADE");
+    assert.throws(()=>storagePolicy(options),error=>error.code==="BSONLITE_NATIVE_MIGRATION_REQUIRED");
+    assert.throws(()=>normalizeOptions({...options,storageEncryption:"none"}),error=>error.code==="BSONLITE_SECURITY_DOWNGRADE");
+  } finally {fs.rmSync(directory,{recursive:true,force:true});}
+});
+
+test("the default 9.0 core refuses old 4.0 files without changing data or metadata", async () => {
+  const directory=temp();
+  try {
+    const file=path.join(directory,"bsonlite.json");
+    const original=JSON.stringify({...metadataFor("a".repeat(32),"oldapp"),engineVersion:"4.0.28"});
+    fs.writeFileSync(file,original);fs.mkdirSync(path.join(directory,"data"));
+    fs.writeFileSync(path.join(directory,"data","preserved"),"old-records");
+    await assert.rejects(BsonLite.open({directory}),error=>error.code==="BSONLITE_DATA_VERSION");
+    assert.equal(fs.readFileSync(file,"utf8"),original);
+    assert.equal(fs.readFileSync(path.join(directory,"data","preserved"),"utf8"),"old-records");
+    assert.equal(fs.existsSync(path.join(directory,"instance.lock")),false);
   } finally {fs.rmSync(directory,{recursive:true,force:true});}
 });

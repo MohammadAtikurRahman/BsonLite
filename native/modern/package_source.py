@@ -27,6 +27,10 @@ def package(work):
         archive.add(ROOT / "native/modern", arcname="bsonlite/native/modern", filter=include)
         archive.add(ROOT / "native/src", arcname="bsonlite/native/src", filter=include)
         archive.add(ROOT / "LICENSE", arcname="bsonlite/LICENSE")
+        # Include the current SDK identity and English entry-point guides so
+        # the corresponding-source download describes this engine profile.
+        for name in ("package.json", "README.md", "START_HERE.md", "CONSOLE.md"):
+            archive.add(ROOT / name, arcname="bsonlite/" + name)
         archive.add(ROOT / "scripts/enable_windows_utf8.py", arcname="bsonlite/scripts/enable_windows_utf8.py")
         resource = ROOT / "assets/modern-win32-x64/engine-utf8.manifest"
         if resource.is_file():

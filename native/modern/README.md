@@ -5,12 +5,11 @@ migration/CLI and embedded-consumer gates on **2026-10-25**, at commit
 `5137fbc92749f20679445657d504718446db4eab`:
 [successful run and downloads](https://github.com/MohammadAtikurRahman/BsonLite/actions/runs/40181496708).
 The prepared package is `bsonlite-sdk@0.7.0-alpha.0` with the `next` publish tag;
-registry publication is a separate maintainer action. The default 0.6 profile
-uses the previous engine, and existing 4.0.28 stores require logical migration.
+registry publication is a separate maintainer action. The default core profile is now 9.0.4; existing 4.0.28 stores require logical migration.
 Applying the source patch or importing a source preview alone cannot validate
 a new customer engine.
 
-[বাংলায় ব্যবহার ও পুরোনো database upgrade](UPGRADE_BN.md)
+[Usage and database upgrades](UPGRADE.md)
 
 ## Pinned inputs
 
@@ -106,7 +105,7 @@ modern SDK's BSON 7 driver through the authenticated EJSON bridge.
 
 This generates `dist-modern/BsonLite.cjs` with the new driver and API, but no
 native engine. A source preview cannot create an encrypted customer database.
-Normal `npm run build` still selects the legacy profile.
+Normal `npm run build` and `npm run build:preview` select this modern profile and write `dist/BsonLite.cjs`. Explicit modern aliases write `dist-modern/`; explicit legacy commands write `dist-legacy/`.
 
 The modern engine requires native encryption. Its `auto` and `required` SDK
 policies select full native encryption; `none` and partial prototypes are

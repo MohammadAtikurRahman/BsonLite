@@ -1,8 +1,8 @@
-# Security model — 0.6.0-rc.1
+# Security model
 
 Release candidate. Native Windows evidence belongs to the exact artifact's successful CI run in validation.json. No independent security audit is claimed.
 
-MongoDB 4.0.28 is retained for the requested older-engine compatibility. MongoDB lists the 4.0 server line as end-of-life on April 30, 2022: https://www.mongodb.com/legal/support-policy/lifecycles. This custom encryption layer does not supply upstream server security maintenance. Loopback/mTLS limits exposure but does not replace that maintenance.
+The current default is engine 9.0.4 with driver 7.7.0. MongoDB 4.0.28 is retained only for explicitly selected legacy compatibility builds. MongoDB lists the 4.0 server line as end-of-life on April 30, 2022: https://www.mongodb.com/legal/support-policy/lifecycles. This custom encryption layer does not supply upstream server security maintenance. Loopback/mTLS limits exposure but does not replace that maintenance.
 
 ## Storage design
 

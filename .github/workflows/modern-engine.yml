@@ -2,7 +2,7 @@ name: Experimental MongoDB 9 encrypted engine
 on:
   workflow_dispatch:
   push:
-    branches: [upgrade/mongodb-9.0]
+    branches: [main, upgrade/mongodb-9.0]
   pull_request:
     paths: ['native/modern/**', 'src/**', 'scripts/**', 'test/modern*', '.github/workflows/modern-engine.yml']
 permissions:
@@ -21,6 +21,8 @@ jobs:
         with: {node-version: '24', package-manager-cache: false}
       - run: npm ci
       - run: npm test
+      - run: npm run build:preview
+      - run: npm run test:packaging
       - run: npm run build:modern:preview
       - run: node native/modern/console-compat/verify.cjs
       - run: npm ci --ignore-scripts
@@ -123,12 +125,14 @@ jobs:
         run: |
           $env:BSONLITE_ENGINE_PATH = Join-Path $PWD 'assets/modern-win32-x64/mongod.exe'
           $env:BSONLITE_NATIVE_MANIFEST = Join-Path $PWD 'assets/modern-win32-x64/native-engine.json'
-          npm run build:modern
+          npm run build
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          New-Item -ItemType Directory -Force dist-modern | Out-Null
+          Copy-Item dist/* dist-modern/ -Force
       - name: Test the actual embedded SDK and isolated concurrent consumers
         shell: pwsh
         run: |
-          $env:BSONLITE_TEST_MODULE = Join-Path $PWD 'dist-modern/BsonLite.cjs'
+          $env:BSONLITE_TEST_MODULE = Join-Path $PWD 'dist/BsonLite.cjs'
           $env:BSONLITE_NATIVE_BINARY = Join-Path $PWD 'assets/modern-win32-x64/mongod.exe'
           $env:BSONLITE_NATIVE_MANIFEST = Join-Path $PWD 'assets/modern-win32-x64/native-engine.json'
           $env:BSONLITE_MODERN_EMBEDDED = '1'
@@ -136,10 +140,11 @@ jobs:
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           python native/modern/validate_release.py --phase final --source native/build/modern/source-native.xml --runtime native/build/modern/runtime.xml --final native/build/modern/final-native.xml
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
+          Copy-Item dist-modern/validation.json,dist-modern/SHA256SUMS.txt dist/ -Force
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1
         with:
           repository: MohammadAtikurRahman/Bsonlite-SDK
-          ref: 7f33825972537deecb3ba79ed36fa95a0c86ea16
+          ref: 88a89c52c34b37c86dd5733f2f73c0d34642f57b
           path: native/build/npm-packager
           persist-credentials: false
       - name: Prepare, verify and install the actual experimental npm package
@@ -182,6 +187,7 @@ jobs:
             native/build/modern/BsonLite-modern-engine-source.tar.gz
             licenses/modern/
             dist-modern/
+            dist/
             licenses/modern-sdk/
             native/build/modern/*.xml
       - name: Preserve failed-run test reports and the native manifest

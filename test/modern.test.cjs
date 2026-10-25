@@ -30,7 +30,7 @@ test("modern startup preserves TLS and authentication without removed monitoring
 test("modern source preview exposes the new driver, imports inertly and refuses an absent engine", async () => {
   const file = path.resolve(__dirname, "../dist-modern/BsonLite.cjs");
   if (!fs.existsSync(file)) {
-    const result = spawnSync(process.execPath, ["scripts/build.cjs", "--engine-profile=modern", "--preview-source"], { cwd: path.join(__dirname, ".."), encoding: "utf8" });
+    const result = spawnSync(process.execPath, ["scripts/build.cjs", "--engine-profile=modern", "--outdir=dist-modern", "--preview-source"], { cwd: path.join(__dirname, ".."), encoding: "utf8" });
     assert.equal(result.status, 0, result.stderr);
   }
   const sdk = require(file);

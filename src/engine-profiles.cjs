@@ -6,13 +6,13 @@ const profiles = Object.freeze({
   "4.0.28": Object.freeze({
     id: "legacy", version: "4.0.28", manifestVersion: 1,
     upstreamCommit: "af1a9dc12adcfa83cc19571cb3faba26eeddac92",
-    minimumWindowsBuild: 18362, driverVersion: "6.16.0", driverPackage: "mongodb",
+    minimumWindowsBuild: 18362, driverVersion: "6.16.0", driverPackage: "mongodb-legacy",
     sdkVersion: "0.6.0-rc.1", selfTestProtocol: "win32-exit-code-v1"
   }),
   "9.0.4": Object.freeze({
     id: "modern", version: "9.0.4", manifestVersion: 2,
     upstreamCommit: "246de92935f8636f4f90889d418b31ae70dbaafd",
-    minimumWindowsBuild: 20348, driverVersion: "7.7.0", driverPackage: "mongodb-modern",
+    minimumWindowsBuild: 20348, driverVersion: "7.7.0", driverPackage: "mongodb",
     sdkVersion: "0.7.0-alpha.0", selfTestProtocol: "json-v1"
   })
 });

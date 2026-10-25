@@ -20,7 +20,7 @@ async function resolveEngine(options) {
   if (!binaryPath) {
     if (!embedded || embedded.sourcePreview) {
       throw new BsonLiteError("BSONLITE_ENGINE_NOT_EMBEDDED",
-        "This source preview does not contain the rebuilt encrypted engine. Build and validate it using the native Windows workflow. Developer tests can supply binaryPath and nativeManifest. See START_HERE_BN.md; existing data was not reset.");
+        "This source preview does not contain the rebuilt encrypted engine. Build and validate it using the native Windows workflow. Developer tests can supply binaryPath and nativeManifest. See START_HERE.md; existing data was not reset.");
     }
     if (embedded.platform !== process.platform || embedded.arch !== process.arch) {
       throw new BsonLiteError("BSONLITE_UNSUPPORTED_PLATFORM",

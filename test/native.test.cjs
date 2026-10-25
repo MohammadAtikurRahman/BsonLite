@@ -33,11 +33,11 @@ test("compiled libsodium cipher passes roundtrip, nonce, wrong-key, domain and t
 test("self-test transport rejects unrelated executables and unknown protocols",async()=>{
   const root=temp(),file=path.join(root,"native-engine.json");
   try{
-    const manifest={version:1,cipher:native.CIPHER,platform:process.platform,arch:process.arch,engineVersion:"4.0.28",
+    const manifest={version:2,cipher:native.CIPHER,platform:process.platform,arch:process.arch,engineVersion:"9.0.4",
       engineSha256:crypto.createHash("sha256").update(fs.readFileSync(process.execPath)).digest("hex"),libsodiumVersion:"1.0.22",
-      mode:"builtin",temporaryFiles:true,engineManagedDumps:false,upstreamCommit:"af1a9dc12adcfa83cc19571cb3faba26eeddac92",
-      patchSha256:"a".repeat(64),staticCRuntime:true,tlsProvider:"Windows SChannel",windowsCodePage:"UTF-8",minimumWindowsBuild:18362,
-      selfTestProtocol:"win32-exit-code-v1"};
+      mode:"builtin",temporaryFiles:true,engineManagedDumps:false,upstreamCommit:"246de92935f8636f4f90889d418b31ae70dbaafd",
+      patchSha256:"a".repeat(64),staticCRuntime:true,tlsProvider:"Windows SChannel",windowsCodePage:"UTF-8",minimumWindowsBuild:20348,
+      selfTestProtocol:"json-v1"};
     fs.writeFileSync(file,JSON.stringify(manifest));
     await assert.rejects(native.resolveNative(process.execPath,{storageEncryption:"native",nativeManifest:file}),
       error=>error.code===(process.platform==="win32"?"BSONLITE_NATIVE_SELF_TEST":"BSONLITE_NATIVE_ENGINE_INVALID"));
@@ -46,12 +46,12 @@ test("self-test transport rejects unrelated executables and unknown protocols",a
   }finally{fs.rmSync(root,{recursive:true,force:true});}
 });
 const windowsEngine=path.resolve(__dirname,"../assets/native-win32-x64/mongod.exe");
-test("the actual compiled Windows engine passes its pinned exit-code self-test",{
+test("the optional legacy Windows fixture passes its pinned exit-code self-test",{
   skip:process.platform!=="win32"||!fs.existsSync(windowsEngine)
 },async()=>{
   const result=spawnSync(windowsEngine,["--bsonlite-native-self-test"],{encoding:"utf8",timeout:15000,windowsHide:true});
   assert.equal(result.status,0,result.stderr);assert.equal(result.stdout,"");
-  const descriptor=await native.resolveNative(windowsEngine,{storageEncryption:"native"});assert.equal(descriptor.coverage,"full");
+  const descriptor=await native.resolveNative(windowsEngine,{storageEncryption:"native"},require("../src/engine-profiles.cjs").profileFor("4.0.28"));assert.equal(descriptor.coverage,"full");
 });
 test("compiled native key reader accepts exactly one protected-key frame",compiled,()=>{const result=spawnSync(probe,["--key-frame-test"],{input:native.keyFrame(auth()),encoding:"utf8",timeout:15000});assert.equal(result.status,0,result.stderr);assert.equal(JSON.parse(result.stdout).keyFrameAccepted,true);});
 test("compiled native key reader rejects truncated, extra and invalid input",compiled,()=>{const frame=native.keyFrame(auth());const invalid=Buffer.from(frame);invalid[0]^=1;for(const input of [frame.subarray(0,40),Buffer.concat([frame,Buffer.from([1])]),invalid]){const result=spawnSync(probe,["--key-frame-test"],{input,encoding:"utf8",timeout:15000});assert.equal(result.status,2,result.stderr);assert.equal(result.stdout,"");}});

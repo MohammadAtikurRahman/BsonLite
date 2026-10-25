@@ -13,7 +13,7 @@
 | `native/build_linux.py` | Limited Linux prototype builder for a supplied MongoDB 4.0.28 binary |
 | `native/package_source.py` | Matching modified source archive for a binary release |
 | `scripts/Publish-GitHub.ps1` | One-time developer helper to create an empty new repo and push `main` |
-| `NEW_REPOSITORY_BN.md` | New repository and automatic Windows build instructions |
+| `CONTRIBUTING.md` | New repository and automatic Windows build instructions |
 | `BsonLite-repository.bundle` | Download-only Git history; generated files stay out of source commits |
 | `dist/BsonLite.cjs` | In this download: source-only preview; final CI artifact: embedded encrypted engine |
 | `test/native*.test.cjs` | Cipher, keys, logs, real storage, migration, restore and native release tests |

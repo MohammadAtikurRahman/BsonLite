@@ -1,10 +1,14 @@
+# Legacy 4.0 native compatibility build
+
+The default core uses engine 9.0.4. Use [the current native build guide](modern/README.md) for normal development. The following instructions apply only to the explicit 4.0.28 compatibility profile.
+
 # Native encrypted engine build
 
 The pinned Windows engine has compiled, linked, passed its in-engine cipher self-test (exit status 0), import guards and source packaging. BsonLite 0.6.0-rc.1 is a release candidate. Customer artifacts are uploaded only after the actual full Windows runtime and final-bundle workflow succeeds; use the matching artifact's validation.json as evidence. No independent security audit is claimed.
 
 ## GitHub
 
-The private repository is `MohammadAtikurRahman/BsonLite`, with source/workflows on `main`. The complete native Windows workflow passed in [run 39260874503](https://github.com/MohammadAtikurRahman/BsonLite/actions/runs/39260874503), including DPAPI/ACL/Unicode helpers, real encrypted data and spills, migration, the final embedded consumer and earlier-format compatibility. See `TEST_RESULTS.md` for exact suite counts and remaining platform/release limits, and `NEW_REPOSITORY_BN.md` for repository/build details.
+The private repository is `MohammadAtikurRahman/BsonLite`, with source/workflows on `main`. The complete native Windows workflow passed in [run 39260874503](https://github.com/MohammadAtikurRahman/BsonLite/actions/runs/39260874503), including DPAPI/ACL/Unicode helpers, real encrypted data and spills, migration, the final embedded consumer and earlier-format compatibility. See `TEST_RESULTS.md` for exact suite counts and remaining platform/release limits, and `CONTRIBUTING.md` for repository/build details.
 
 Place this SDK project at the new repository root. A push to `main` starts `.github/workflows/native-windows.yml`; **Actions → Build native encrypted Windows SDK → Run workflow** also permits a manual run. It only uploads **BsonLite-native-Windows-x64-<commit>** after all tests pass. The artifact includes checksums and the source commit/run reference. If keeping the SDK in a subfolder of an existing repository, move the workflow to the repository-level `.github/workflows/` and adjust working-directory and artifact paths to that subfolder.
 

@@ -2,7 +2,7 @@
 const test = require("node:test"), assert = require("node:assert/strict");
 const fs = require("node:fs"), os = require("node:os"), path = require("node:path");
 const { isAlive } = require("../src/util.cjs");
-const { MongoClient } = require("mongodb-modern");
+const { MongoClient } = require("mongodb");
 const binaryPath = process.env.BSONLITE_MODERN_BINARY;
 const nativeManifest = process.env.BSONLITE_MODERN_MANIFEST;
 const modulePath = process.env.BSONLITE_MODERN_MODULE || path.resolve(__dirname, "../dist-modern/BsonLite.cjs");

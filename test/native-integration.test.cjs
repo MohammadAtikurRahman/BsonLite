@@ -5,7 +5,7 @@ const {spawn,spawnSync}=require("node:child_process");
 const managed=fs.mkdtempSync(path.join(os.tmpdir(),"bsonlite-managed-পরীক্ষা-"));process.env.BSONLITE_DATA_HOME=managed;
 const B=require(process.env.BSONLITE_TEST_MODULE||"../src/index.cjs");
 const modern=B.engineVersion==="9.0.4";
-const embeddedArtifact=Boolean(process.env.BSONLITE_TEST_MODULE)&&(!modern||process.env.BSONLITE_MODERN_EMBEDDED==="1");
+const embeddedArtifact=Boolean(process.env.BSONLITE_TEST_MODULE)&&process.env.BSONLITE_SOURCE_PREVIEW!=="1"&&(!modern||process.env.BSONLITE_MODERN_EMBEDDED==="1");
 const {Long,Int32,Double,BSONRegExp}=B.BSON;
 const binary=process.env.BSONLITE_NATIVE_BINARY,manifest=process.env.BSONLITE_NATIVE_MANIFEST;
 const enabled=Boolean(binary&&manifest),kind=enabled?JSON.parse(fs.readFileSync(manifest,"utf8")).mode:null;

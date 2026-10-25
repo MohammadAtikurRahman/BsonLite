@@ -5,7 +5,7 @@ let closing;
 
 async function main() {
   // Requires the final Windows artifact produced by the native build workflow.
-  // The source preview has no rebuilt Windows engine. See START_HERE_BN.md.
+  // The source preview has no rebuilt Windows engine. See START_HERE.md.
   // In the final artifact, ports, TLS, credentials and encryption are automatic.
   await BsonLite.connect();
   if (closing) return;

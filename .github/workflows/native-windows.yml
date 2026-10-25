@@ -1,4 +1,4 @@
-name: Build native encrypted Windows SDK
+name: Legacy 4.0 encrypted Windows compatibility
 on:
   workflow_dispatch:
   push:
@@ -53,7 +53,7 @@ jobs:
       - name: Verify parent-exit cleanup before the full database suites
         shell: pwsh
         run: |
-          npm run build:preview
+          node scripts/build.cjs --engine-profile=legacy --preview-source
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           $env:BSONLITE_TEST_MODULE = Join-Path $PWD 'dist/BsonLite.cjs'
           $env:BSONLITE_TEST_BINARY = Join-Path $PWD 'assets/native-win32-x64/mongod.exe'
@@ -64,6 +64,8 @@ jobs:
         run: |
           $env:BSONLITE_NATIVE_BINARY = Join-Path $PWD 'assets/native-win32-x64/mongod.exe'
           $env:BSONLITE_NATIVE_MANIFEST = Join-Path $PWD 'assets/native-win32-x64/native-engine.json'
+          $env:BSONLITE_TEST_MODULE = Join-Path $PWD 'dist/BsonLite.cjs'
+          $env:BSONLITE_SOURCE_PREVIEW = '1'
           npm run test:native-integration
           if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
           $file = $env:BSONLITE_NATIVE_MANIFEST
@@ -74,8 +76,11 @@ jobs:
         shell: pwsh
         run: |
           $env:BSONLITE_ENGINE_PATH = Join-Path $PWD 'assets/native-win32-x64/mongod.exe'
-          npm run build
+          node scripts/build.cjs --engine-profile=legacy
+          if ($LASTEXITCODE -ne 0) { exit $LASTEXITCODE }
       - run: npm run test:packaging
+        env:
+          BSONLITE_TEST_ENGINE_VERSION: '4.0.28'
       - name: Test final single-file consumer artifact and earlier-format compatibility
         shell: pwsh
         run: |
@@ -114,7 +119,7 @@ jobs:
           path: |
             dist/
             licenses/
-            START_HERE_BN.md
+            START_HERE.md
             native/README.md
             native/build/BsonLite-native-engine-source.tar.gz
             assets/native-win32-x64/native-engine.json

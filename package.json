@@ -1,11 +1,11 @@
 {
   "name": "bsonlite",
-  "version": "0.6.0-rc.1",
+  "version": "0.7.0-alpha.0",
   "private": true,
-  "description": "Single-file offline MongoDB 4.0.28 SDK with native encryption. Windows x64 release candidate.",
+  "description": "Portable database SDK with native encryption, engine 9.0.4 and automatic Console connections. Windows x64 experimental prerelease.",
   "main": "src/index.cjs",
   "engines": {
-    "node": ">=20"
+    "node": ">=20.19.0"
   },
   "scripts": {
     "start": "node index.js",
@@ -18,19 +18,21 @@
     "test:packaging": "node --test test/packaging.test.cjs",
     "test:integration": "node --test --test-concurrency=1 test/integration.test.cjs",
     "unlock": "node scripts/unlock.cjs",
-    "build:modern": "node scripts/build.cjs --engine-profile=modern",
-    "build:modern:preview": "node scripts/build.cjs --engine-profile=modern --preview-source",
+    "build:modern": "node scripts/build.cjs --engine-profile=modern --outdir=dist-modern",
+    "build:modern:preview": "node scripts/build.cjs --engine-profile=modern --outdir=dist-modern --preview-source",
+    "build:legacy": "node scripts/build.cjs --engine-profile=legacy --outdir=dist-legacy",
+    "build:legacy:preview": "node scripts/build.cjs --engine-profile=legacy --outdir=dist-legacy --preview-source",
     "test:modern": "node --test test/modern.test.cjs test/upgrade.test.cjs test/console-modern.test.cjs",
     "test:modern-integration": "node --test --test-concurrency=1 test/modern-integration.test.cjs"
   },
   "dependencies": {
     "@peculiar/x509": "2.2.0",
-    "mongodb": "6.16.0",
+    "mongodb": "7.7.0",
     "reflect-metadata": "0.2.2"
   },
   "devDependencies": {
     "esbuild": "0.25.5",
-    "mongodb-modern": "npm:mongodb@7.7.0"
+    "mongodb-legacy": "npm:mongodb@6.16.0"
   },
   "license": "MIT"
 }
