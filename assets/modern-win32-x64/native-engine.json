@@ -1,0 +1,23 @@
+{
+  "version": 2,
+  "engineVersion": "9.0.4",
+  "upstreamCommit": "246de92935f8636f4f90889d418b31ae70dbaafd",
+  "patchSha256": "c734c16ef1f7189cebc5787a40414d29b64e90d2b6fde10d1fe780f7ebab4419",
+  "cipher": "xchacha20-poly1305",
+  "mode": "builtin",
+  "platform": "win32",
+  "arch": "x64",
+  "engineSha256": "61d9c95ae1e58d96ac7f74d5aa46e7aefc1f8a3208a86097dbc77c3af62f5307",
+  "temporaryFiles": true,
+  "libsodiumVersion": "1.0.22",
+  "engineManagedDumps": false,
+  "windowsIntegration": "passed",
+  "selfTestProtocol": "json-v1",
+  "staticCRuntime": true,
+  "tlsProvider": "Windows SChannel",
+  "windowsCodePage": "UTF-8",
+  "minimumWindowsBuild": 20348,
+  "resourceManifestSha256": "5b34dfa2ec2b105def417683f8252c6e3da8f82d87440f38656d165ec445498f",
+  "sourceArchiveSha256": "7f9a0652698f08e9b7d1cba63c0e5dbb6724f50e433aef274b72873c9f0a6a4e",
+  "finalBundleIntegration": "passed"
+}

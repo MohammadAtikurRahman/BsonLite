@@ -65,6 +65,9 @@ jobs:
         with: {python-version: '3.13'}
       - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1
         with: {node-version: '24', package-manager-cache: false}
+      - run: npm ci
+      - name: Build the full standalone SDK directly from a fresh pull
+        run: npm run build
       - uses: actions/cache/restore@caa296126883cff596d87d8935842f9db880ef25
         id: engine-cache
         with:
@@ -95,7 +98,6 @@ jobs:
             native/build/modern/BsonLite-modern-engine-source.tar.gz
             licenses/modern/
           key: modern-native-v143-static-v1-${{ hashFiles('native/modern/deps.lock.json', 'native/modern/patch_mongo.py', 'native/modern/hooks.inc', 'native/modern/build_windows.ps1', 'native/modern/enable_utf8.py', 'native/modern/package_source.py', 'native/src/**', 'scripts/enable_windows_utf8.py') }}
-      - run: npm ci
       - run: npm run build:modern:preview
       - run: node native/modern/console-compat/verify.cjs
       - run: npm ci --ignore-scripts

@@ -1,0 +1,28 @@
+{
+  "version": 2,
+  "status": "experimental-validated",
+  "engineVersion": "9.0.4",
+  "driverVersion": "7.7.0",
+  "repository": "MohammadAtikurRahman/BsonLite",
+  "commit": "5ab0017339173049b25e16b3a404a16d3d664f3d",
+  "run": "https://github.com/MohammadAtikurRahman/BsonLite/actions/runs/40186712304",
+  "engineSha256": "61d9c95ae1e58d96ac7f74d5aa46e7aefc1f8a3208a86097dbc77c3af62f5307",
+  "sdkSha256": "bc5a3cd20dc217c0a4c0255921dad687aa94844fe1730a6ad51bf56b50a83172",
+  "modifiedEngineSourceSha256": "7f9a0652698f08e9b7d1cba63c0e5dbb6724f50e433aef274b72873c9f0a6a4e",
+  "reports": {
+    "sourceNative": {
+      "requiredPassed": 7,
+      "reportSha256": "d4771646853d9c56aeeff28f4c0ff9f07bc1903f2b244c620cfddf29582213ae"
+    },
+    "runtimeAndMigration": {
+      "requiredPassed": 3,
+      "reportSha256": "25c43a556c8e677a3336083fdb0c4c9107b6dd37b6f2bbc0600fae59c26acc9d"
+    },
+    "finalNative": {
+      "requiredPassed": 9,
+      "reportSha256": "faef558786da2c7bfa5f00b0ffed4d7eeccdccdc619ae422a2f5ad31a58dc155"
+    }
+  },
+  "cleanWindowsDesktop": "not-tested",
+  "independentSecurityAudit": "not-performed"
+}

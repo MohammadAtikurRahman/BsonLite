@@ -8,3 +8,12 @@
 *.bundle -text
 # Preserve upstream notices exactly, including their original line endings.
 licenses/* -text -whitespace
+
+# Preserve the temporary native build input parts on every platform.
+assets/modern-win32-x64/packed/*.part binary
+native/build/modern/packed/*.part binary
+assets/modern-win32-x64/snapshot-reports/*.xml -text -whitespace
+assets/modern-win32-x64/snapshot-validation.json -text -whitespace
+assets/modern-win32-x64/native-engine.json -text -whitespace
+assets/modern-win32-x64/engine-utf8.manifest -text -whitespace
+licenses/modern/** -text -whitespace

@@ -31,6 +31,10 @@ async function main() {
   const platform = process.env.BSONLITE_BUILD_PLATFORM || "win32";
   const arch = process.env.BSONLITE_BUILD_ARCH || "x64";
   const sourceOnly=process.argv.includes("--preview-source");
+  if (!sourceOnly && modern) {
+    const restored = require("./restore-native-assets.cjs").restoreNativeBuildAssets(root, profile);
+    if (restored.length) console.log("Restored verified native build inputs from tracked parts.");
+  }
   const dependencyNotices = require("./notices.cjs").collectNotices(root, { modern, driverPackage: profile.driverPackage });
   if (!sourceOnly&&!fs.existsSync(binary)) {
     throw new Error("The encrypted Windows engine has not been built. Run the native Windows workflow; an ordinary mongod.exe is not accepted as an encrypted engine.");

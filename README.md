@@ -34,6 +34,30 @@ A running app appears in BsonLite Console 0.2.0 automatically. The GUI is a sepa
 
 ## Develop from source
 
+### Build the standalone file after pulling
+
+This checkout temporarily tracks the validated native build inputs so a maintainer can rebuild the standalone SDK without downloading extra engine files or compiling C++:
+
+```sh
+git pull --ff-only origin main
+npm ci
+npm run build
+```
+
+Keep these files in the core project:
+
+- `assets/modern-win32-x64/native-engine.json` and `build-assets.json`.
+- All parts under `assets/modern-win32-x64/packed/` and `native/build/modern/packed/`.
+- `licenses/modern/` and the snapshot validation records under `assets/modern-win32-x64/`.
+
+The parts contain the actual tested 9.0.4 encrypted engine and its matching modified source archive. `npm run build` verifies their SHA-256 hashes, reconstructs `assets/modern-win32-x64/mongod.exe` and `native/build/modern/BsonLite-modern-engine-source.tar.gz` when needed, and then runs the normal native engine checks before bundling. It never marks an untested engine as validated. The part files are binary Git files; no Git LFS or separate download is required. They are split to fit GitHub's [regular file limits](https://docs.github.com/en/repositories/working-with-files/managing-large-files/about-large-files-on-github).
+
+The result is **`dist/BsonLite.cjs` with `Mode: native-encrypted`**. Publish that CJS as the direct website download. It already contains the engine and required JavaScript dependencies; customers do not need the core build inputs, a ZIP installer, npm installation or a separate database installation. Node.js and the supported Windows version are still required. Keep the matching engine source and notices available through the documentation/source links. The Console/CLI application remains a separate download, and npm users can choose `bsonlite-sdk`.
+
+The relevant `.gitignore` rules are temporarily removed at the maintainer's request. Keep the tracked parts and the restored engine/source files locally; ignore rules will only be restored after the maintainer confirms the transfer. Adding an ignore rule alone does not untrack an already committed file.
+
+### Check a source preview
+
 ```sh
 npm ci
 npm test

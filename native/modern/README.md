@@ -28,6 +28,8 @@ database, including its metadata and journal.
 
 ## Build on Windows
 
+To rebuild only the standalone JavaScript SDK after pulling the current core, run `npm ci` and `npm run build` on supported Windows. The temporary tracked build snapshot contains the already validated engine and matching source as binary parts; the build restores and verifies them automatically. Keep the paths listed in the [core README](../../README.md#build-the-standalone-file-after-pulling). This needs no C++ compiler. The instructions below apply when recompiling or changing the native engine itself.
+
 Requirements: Windows x64, PowerShell 7, Python 3.13, Node.js 24, Visual Studio
 2022 with v143 C++ tools and a Windows SDK. The build uses upstream Bazel with
 local execution, Community-only components, a static CRT and Windows SChannel.

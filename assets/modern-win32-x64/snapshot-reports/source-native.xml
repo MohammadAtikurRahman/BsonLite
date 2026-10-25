@@ -1,0 +1,27 @@
+<?xml version="1.0" encoding="utf-8"?>
+<testsuites>
+	<testcase name="real MongoDB queries, indexes and BSON values work with encrypted WiredTiger blocks" time="17.380287" classname="test" file="D:\a\BsonLite\BsonLite\test\native-integration.test.cjs"/>
+	<testcase name="native backup/restore preserves the data key and rewraps it for a new store identity" time="18.786007" classname="test" file="D:\a\BsonLite\BsonLite\test\native-integration.test.cjs"/>
+	<testcase name="a wrong protected data key fails authentication without resetting existing data" time="16.933396" classname="test" file="D:\a\BsonLite\BsonLite\test\native-integration.test.cjs"/>
+	<testcase name="migration preserves documents, numeric BSON types, text indexes and views" time="0.000240" classname="test" file="D:\a\BsonLite\BsonLite\test\native-integration.test.cjs">
+		<skipped type="skipped" message="Cross-engine migration is exercised by the separate modern upgrade fixture."/>
+	</testcase>
+	<testcase name="an interrupted migration marker prevents use of a partial destination" time="9.233025" classname="test" file="D:\a\BsonLite\BsonLite\test\native-integration.test.cjs"/>
+	<testcase name="full native mode refuses the stock engine or a partial prototype before creating data" time="6.882991" classname="test" file="D:\a\BsonLite\BsonLite\test\native-integration.test.cjs"/>
+	<testcase name="rebuilt engine encrypts actual aggregation spill files" time="11.537681" classname="test" file="D:\a\BsonLite\BsonLite\test\native-integration.test.cjs"/>
+	<testcase name="rebuilt engine prevents per-collection plaintext encryption overrides" time="6.729364" classname="test" file="D:\a\BsonLite\BsonLite\test\native-integration.test.cjs"/>
+	<testcase name="final Windows single-file artifact starts without developer binary paths or npm packages" time="0.000256" classname="test" file="D:\a\BsonLite\BsonLite\test\native-integration.test.cjs">
+		<skipped type="skipped" message="Requires the final embedded Windows artifact."/>
+	</testcase>
+	<testcase name="two standalone consumers safely share a fresh embedded engine cache" time="0.000169" classname="test" file="D:\a\BsonLite\BsonLite\test\native-integration.test.cjs">
+		<skipped type="skipped" message="Requires the final embedded Windows artifact."/>
+	</testcase>
+	<!-- tests 10 -->
+	<!-- suites 0 -->
+	<!-- pass 7 -->
+	<!-- fail 0 -->
+	<!-- cancelled 0 -->
+	<!-- skipped 3 -->
+	<!-- todo 0 -->
+	<!-- duration_ms 87668.0467 -->
+</testsuites>

@@ -13,7 +13,7 @@
     "build:preview": "node scripts/build.cjs --preview-source",
     "example": "node examples/app.cjs",
     "example:esm": "node examples/app.mjs",
-    "test": "node --test test/unit.test.cjs test/security.test.cjs test/native.test.cjs test/cache-files.test.cjs",
+    "test": "node --test test/unit.test.cjs test/security.test.cjs test/native.test.cjs test/cache-files.test.cjs test/build-assets.test.cjs",
     "test:native-integration": "node --test --test-concurrency=1 test/native-integration.test.cjs",
     "test:packaging": "node --test test/packaging.test.cjs",
     "test:integration": "node --test --test-concurrency=1 test/integration.test.cjs",

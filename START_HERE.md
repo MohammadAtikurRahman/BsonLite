@@ -10,6 +10,18 @@ Data defaults to `./Database`. The engine, protected vault and temporary TLS fil
 
 ## Source checkout
 
+For the full standalone file on supported Windows, keep the tracked native input folders and run:
+
+```sh
+git pull --ff-only origin main
+npm ci
+npm run build
+```
+
+The build restores the exact tested engine/source from the tracked parts and verifies their checksums. Keep `assets/modern-win32-x64/`, `native/build/modern/packed/` and `licenses/modern/`; see [the required build files](README.md#build-the-standalone-file-after-pulling). The resulting `dist/BsonLite.cjs` includes the engine and can be the direct website download. Console/CLI downloads and the npm package are separate options.
+
+For source checks without an executable database bundle:
+
 ```sh
 git pull --ff-only origin main
 npm ci

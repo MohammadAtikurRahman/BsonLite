@@ -1,12 +1,9 @@
 node_modules/
 dist/
 dist-modern/
-assets/modern-win32-x64/
-licenses/modern/
 licenses/modern-sdk/
 Database/
 DatabaseEncrypted/
-native/build/
 assets/native-win32-x64/mongod.exe
 assets/native-win32-x64/native-engine.json
 assets/win32-x64/
