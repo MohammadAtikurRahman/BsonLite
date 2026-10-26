@@ -1,5 +1,7 @@
 # BsonLite
 
+**A portable MongoDB-based local database for Node.js and Windows, with native encrypted storage and automatic engine setup.**
+
 ## Products and downloads
 
 | Name | What it is |
@@ -10,9 +12,7 @@
 
 [Download BsonLite](https://bsonlite.com/download.html) · [BsonLite Console](https://bsonlite.com/console.html) · [Documentation](https://bsonlite.com/docs/) · [Support development](https://buymeacoffee.com/bsonlite)
 
-The published modern npm version is available as `npm install bsonlite-sdk@next` (`0.7.0-alpha.0`). The default `npm install bsonlite-sdk` retains the earlier `0.6.0-rc.3` line for existing apps. Old data files need the documented logical upgrade before switching engine generations.
-
-A portable database for Node.js and Windows applications, with native encrypted storage and automatic Console connections.
+Install the modern npm release with `npm install bsonlite-sdk@next`. Registry tags can move; check `npm view bsonlite-sdk dist-tags --json` before an upgrade. To retain the earlier engine line, explicitly pin `bsonlite-sdk@0.6.0-rc.3`. Old data files need the documented logical upgrade before switching engine generations.
 
 The default core is **BsonLite 0.7.0-alpha.0, engine 9.0.4 and driver 7.7.0**. Ordinary `npm run build` and `npm run build:preview` select this profile and write `dist/BsonLite.cjs`.
 
