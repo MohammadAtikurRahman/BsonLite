@@ -109,6 +109,7 @@ BsonLite requires a Node.js runtime. Clean Windows desktop/GUI testing, target-m
 - [Quick start](START_HERE.md)
 - [Console and CLI](CONSOLE.md)
 - [Native build and validation](native/modern/README.md)
+- [333-case query compatibility audit](QUERY_COMPATIBILITY.md)
 - [Database upgrade](native/modern/UPGRADE.md)
 - [npm preparation and publishing](https://github.com/MohammadAtikurRahman/Bsonlite-SDK/blob/main/MODERN_ENGINE.md)
 - [Contributing](CONTRIBUTING.md)

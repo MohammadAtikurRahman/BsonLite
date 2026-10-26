@@ -1,5 +1,37 @@
 # BsonLite validation
 
+## Published SDK query compatibility — 2026-10-26
+
+The published `bsonlite-sdk@0.7.0-alpha.1` package (embedded SDK `0.7.0-alpha.0`)
+completed **333 differential cases** against official MongoDB Community **9.0.4**
+on Windows Server 2022 with driver 7.7.0 and a database-scoped `readWrite` role
+on both sides. BsonLite used its actual native encrypted store.
+
+| Outcome | Cases |
+| --- | ---: |
+| Matching successful outcomes | 323 |
+| Matching expected errors | 5 |
+| Confirmed BsonLite JavaScript profile limits | 3 |
+| Shared standalone topology limits | 2 |
+| Unexpected differences | 0 |
+
+Coverage includes CRUD, BSON, operators, indexes, complex aggregation, window
+functions, text/geospatial queries, validators, views and time series. Forty
+compound queries also matched independent expectations. A 22,000-document sort
+actually spilled to disk on both sides and returned equal aggregate output.
+This finite matrix does not establish exhaustive MongoDB Community parity.
+
+- [Audit scope, confirmed limits and reproduction](QUERY_COMPATIBILITY.md).
+- [Original successful Windows run](https://github.com/MohammadAtikurRahman/Bsonlite-SDK/actions/runs/40262963488).
+- [Exact per-case JSON report](validation/query-compatibility/2026-10-26/report.json).
+- [Generated readable report](validation/query-compatibility/2026-10-26/report.md).
+
+The audit target is the published package whose preserved runtime evidence
+identifies core baseline `69920051901246994896c1bc53cc5f32bacaabd3`.
+The suite commit is `a58d3883afc38ecd5e77e45450834ff0156ead88` in the SDK
+repository. This is a report-preservation/documentation change; the original
+run identity, SDK hash and all per-case outcomes remain unchanged.
+
 ## Tracked native build inputs
 
 Commit `69920051901246994896c1bc53cc5f32bacaabd3` adds the temporary native
