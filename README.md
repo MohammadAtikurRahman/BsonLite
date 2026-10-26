@@ -12,7 +12,7 @@
 
 [Download BsonLite](https://bsonlite.com/download.html) · [BsonLite Console](https://bsonlite.com/console.html) · [Documentation](https://bsonlite.com/docs/) · [Support development](https://buymeacoffee.com/bsonlite)
 
-Install the modern npm release with `npm install bsonlite-sdk@next`. Registry tags can move; check `npm view bsonlite-sdk dist-tags --json` before an upgrade. To retain the earlier engine line, explicitly pin `bsonlite-sdk@0.6.0-rc.3`. Old data files need the documented logical upgrade before switching engine generations.
+Install the npm package with `npm i bsonlite-sdk`, then import it with `require('bsonlite-sdk')`. The database engine is included. Existing older data files need the documented logical upgrade before switching engine generations; see the [migration guide](https://bsonlite.com/docs/migration.html).
 
 The default core is **BsonLite 0.7.0-alpha.0, engine 9.0.4 and driver 7.7.0**. Ordinary `npm run build` and `npm run build:preview` select this profile and write `dist/BsonLite.cjs`.
 
